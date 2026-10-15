@@ -104,17 +104,19 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
       <div className="grid gap-4 xl:grid-cols-5">
         <div className="space-y-4 xl:col-span-2">
           <Card title="Instructions">
-            <dl className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3 text-sm">
+              <dl className="grid grid-cols-2 gap-3">
                 <div><dt className="label">Sign in as</dt><dd>{v.role ?? "—"}</dd></div>
                 <div><dt className="label">Environment</dt><dd>{v.environment ?? "—"}</dd></div>
-              </div>
-              {v.dependsOn && <div><dt className="label">Depends on</dt><dd>{v.dependsOn}</dd></div>}
-              <div><dt className="label">Preconditions</dt><dd><Prewrap text={v.preconditions} empty="None stated" /></dd></div>
-              <div><dt className="label">Steps</dt><dd><Prewrap text={v.stepsText} /></dd></div>
-              <div><dt className="label">Expected result</dt><dd className="rounded bg-accent-50 p-2"><Prewrap text={v.expectedResult} /></dd></div>
-              {v.testData && <div><dt className="label">Test data</dt><dd><Prewrap text={v.testData} /></dd></div>}
-            </dl>
+              </dl>
+              <dl className="space-y-3">
+                {v.dependsOn && <div><dt className="label">Depends on</dt><dd>{v.dependsOn}</dd></div>}
+                <div><dt className="label">Preconditions</dt><dd><Prewrap text={v.preconditions} empty="None stated" /></dd></div>
+                <div><dt className="label">Steps</dt><dd><Prewrap text={v.stepsText} /></dd></div>
+                <div><dt className="label">Expected result</dt><dd className="rounded bg-accent-50 p-2"><Prewrap text={v.expectedResult} /></dd></div>
+                {v.testData && <div><dt className="label">Test data</dt><dd><Prewrap text={v.testData} /></dd></div>}
+              </dl>
+            </div>
           </Card>
           <Card title="Target application">
             {cc.cycle.environment?.targetUrl ? (
@@ -128,7 +130,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
               <p className="text-sm text-slate-500">No target URL recorded for this round&apos;s environment. Open the application under test separately.</p>
             )}
             <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
-              Want the AI to test it? <Link className="text-accent-700 hover:underline" href={`/apps/${appId}/run`}>Start a run</Link> and choose this round; it picks up the cases not tested yet.
+              Want the AI to test it? <Link className="text-accent-700 underline" href={`/apps/${appId}/run`}>Start a run</Link> and choose this round; it picks up the cases not tested yet.
             </p>
           </Card>
         </div>

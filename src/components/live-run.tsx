@@ -197,7 +197,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
                     onClick={() => setOpen(open === it.id ? null : it.id)}
                     aria-expanded={open === it.id}
                   >
-                    <IconChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${open === it.id ? "rotate-90" : ""}`} />
+                    <IconChevronRight size={14} className={`shrink-0 text-slate-500 transition-transform ${open === it.id ? "rotate-90" : ""}`} />
                     <span className="case-id w-14 shrink-0">{it.externalId}</span>
                     <span className="min-w-0 flex-1 truncate text-sm">
                       {it.title}
@@ -242,7 +242,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
               <ul className="mt-2 space-y-1 border-l border-slate-200 pl-3 text-xs text-slate-600">
                 {v.events.map((e, i) => (
                   <li key={i}>
-                    <span className="tabular-nums text-slate-400">{new Date(e.at).toLocaleTimeString()}</span> {e.message}
+                    <span className="tabular-nums text-slate-500">{new Date(e.at).toLocaleTimeString()}</span> {e.message}
                   </li>
                 ))}
               </ul>

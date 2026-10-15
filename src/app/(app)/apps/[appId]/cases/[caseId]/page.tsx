@@ -156,7 +156,7 @@ export default async function CaseDetailPage({
                 {cc.attempts.length === 0 ? (
                   <p className="px-3 py-2 text-sm text-slate-500">Not run in this round.{cc.importNotes ? ` Imported note: ${cc.importNotes}` : ""}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Attempt history, scrolls sideways">
                     <table className="table-base">
                       <thead>
                         <tr>
@@ -181,7 +181,7 @@ export default async function CaseDetailPage({
                               </div>
                             </td>
                             <td>v{a.caseVersion.versionNumber}</td>
-                            <td>{a.tester ?? <span className="text-slate-400">unknown</span>}</td>
+                            <td>{a.tester ?? <span className="text-slate-500">unknown</span>}</td>
                             <td className="whitespace-nowrap">{a.completedAt ? formatDateTime(a.completedAt) : formatDateOnly(a.executedOn)}</td>
                             <td className="text-xs">
                               {EXECUTION_METHOD_LABEL[a.executionMethod]}
@@ -196,7 +196,7 @@ export default async function CaseDetailPage({
                             </td>
                             <td className="text-xs">
                               {a.evidence.length === 0 ? (
-                                <span className="text-slate-400">{a.source === "IMPORT" ? "none (unknown)" : "none"}</span>
+                                <span className="text-slate-500">{a.source === "IMPORT" ? "none (unknown)" : "none"}</span>
                               ) : (
                                 <ul>
                                   {a.evidence.map((e) => (

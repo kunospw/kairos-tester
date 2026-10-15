@@ -176,7 +176,7 @@ export function AgentConsole({
                   {s.thought && <span className={`block text-xs text-slate-500 ${open ? "" : "line-clamp-2"}`}>{s.thought}</span>}
                   {s.result && (open || s.ok === false) && <span className={`block text-xs ${s.ok === false ? "text-red-700" : "text-slate-600"}`}>{s.result}</span>}
                 </span>
-                <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{new Date(s.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                <span className="shrink-0 text-[11px] tabular-nums text-slate-500">{new Date(s.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
               </button>
             </li>
           );

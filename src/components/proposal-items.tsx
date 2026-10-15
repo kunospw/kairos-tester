@@ -173,7 +173,7 @@ function DraftCaseItem({ appId, item, cases }: { appId: string; item: ItemView; 
         <ol className="space-y-1">
           {steps.map((s, i) => (
             <li key={i} className="flex items-start gap-2">
-              <span className="pt-1.5 text-slate-400">{i + 1}.</span>
+              <span className="pt-1.5 text-slate-500">{i + 1}.</span>
               <textarea className="input" rows={1} value={s.text} onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} aria-label={`Step ${i + 1}`} />
               <label className="flex items-center gap-1 whitespace-nowrap pt-1.5 text-xs">
                 <input type="checkbox" checked={s.required} onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, required: e.target.checked } : x)))} /> required

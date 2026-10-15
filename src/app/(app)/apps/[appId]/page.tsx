@@ -90,7 +90,7 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
           </p>
           <p className="text-sm text-slate-600">
             Pass rate <strong className="tabular-nums text-ink-900">{formatPercent(m.passRate, "—")}</strong>
-            <span className="text-slate-400"> · </span>
+            <span className="text-slate-500"> · </span>
             Coverage <strong className="tabular-nums text-ink-900">{formatPercent(m.coverage, "—")}</strong>
             {m.NOT_APPLICABLE > 0 && <span className="text-slate-500"> · {m.NOT_APPLICABLE} N/A excluded</span>}
           </p>
@@ -117,7 +117,7 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
                     {g.rows.slice(0, 8).map((r) => (
                       <li key={r.cycleCaseId} className="flex items-start gap-2 text-sm">
                         <span className="mt-[3px]"><OutcomeIcon outcome={r.outcome as OutcomeValue} /></span>
-                        <Link href={`${base}/cycles/${selected.id}/run/${r.cycleCaseId}`} className="case-id shrink-0 hover:underline">{r.externalId}</Link>
+                        <Link href={`${base}/cycles/${selected.id}/run/${r.cycleCaseId}`} className="case-id inline-flex min-h-6 shrink-0 items-center hover:underline">{r.externalId}</Link>
                         <span className="min-w-0 flex-1">
                           <span className="text-ink-800">{r.version.title}</span>
                           {g.reason && (r.latestCompleted?.outcomeReason || r.latestCompleted?.remarks) && (
@@ -163,8 +163,8 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
                     <td className="max-w-56">{section}</td>
                     <td className="hidden align-middle sm:table-cell"><StatusBar pass={s.PASS} fail={s.FAIL} blocked={s.BLOCKED} notRun={s.NOT_RUN} legend={false} height={6} /></td>
                     <td className="text-right tabular-nums">{s.PASS}</td>
-                    <td className={`text-right tabular-nums ${s.FAIL ? "font-semibold text-red-700" : "text-slate-400"}`}>{s.FAIL}</td>
-                    <td className={`text-right tabular-nums ${s.BLOCKED ? "font-semibold text-amber-700" : "text-slate-400"}`}>{s.BLOCKED}</td>
+                    <td className={`text-right tabular-nums ${s.FAIL ? "font-semibold text-red-700" : "text-slate-500"}`}>{s.FAIL}</td>
+                    <td className={`text-right tabular-nums ${s.BLOCKED ? "font-semibold text-amber-700" : "text-slate-500"}`}>{s.BLOCKED}</td>
                     <td className="text-right tabular-nums text-slate-500">{s.NOT_RUN}</td>
                   </tr>
                 ))}
@@ -187,7 +187,7 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
                   <tr key={a.id}>
                     <td className="whitespace-nowrap text-slate-600">{formatDateOnly(a.executedOn)}</td>
                     <td>
-                      <Link className="case-id hover:underline" href={`${base}/cycles/${selected.id}/run/${a.cycleCaseId}`}>{a.cycleCase.testCase.externalId}</Link>{" "}
+                      <Link className="case-id inline-flex min-h-6 items-center hover:underline" href={`${base}/cycles/${selected.id}/run/${a.cycleCaseId}`}>{a.cycleCase.testCase.externalId}</Link>{" "}
                       <span className="text-ink-800">{a.caseVersion.title}</span>
                     </td>
                     <td>{a.outcome && <OutcomeBadge outcome={a.outcome as OutcomeValue} />}</td>

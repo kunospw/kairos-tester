@@ -384,7 +384,7 @@ export function ImportWizard({
                             </select>
                           </div>
                         ) : (
-                          <span className="text-slate-400">new</span>
+                          <span className="text-slate-500">new</span>
                         )}
                       </td>
                     </tr>

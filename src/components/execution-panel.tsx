@@ -230,7 +230,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                 <li key={s.stepIndex} className="rounded border border-slate-200 p-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="prewrap flex-1 text-sm">
-                      <span className="mr-1 text-slate-400">{i + 1}.</span>
+                      <span className="mr-1 text-slate-500">{i + 1}.</span>
                       {s.text}
                       {!s.required && <span className="ml-1 text-xs text-slate-500">(optional)</span>}
                     </p>

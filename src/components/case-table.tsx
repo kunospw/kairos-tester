@@ -168,7 +168,7 @@ export function CaseTable({ rows, base, cycleId, simulation, roundPicker }: { ro
                       {r.lifecycle && <LifecycleBadge status={r.lifecycle as AttemptStatusValue} />}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-400">not in round</span>
+                    <span className="text-xs text-slate-500">not in round</span>
                   )}
                 </td>
               </tr>

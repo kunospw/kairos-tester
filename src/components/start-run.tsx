@@ -263,7 +263,7 @@ function Choice({ checked, onSelect, title, children }: { checked: boolean; onSe
 
 function Check({ checked, onChange, disabled, hint, children }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; hint?: string; children: React.ReactNode }) {
   return (
-    <label className={`flex items-start gap-2 text-sm ${disabled ? "text-slate-400" : "text-ink-800"}`}>
+    <label className={`flex items-start gap-2 text-sm ${disabled ? "text-slate-500" : "text-ink-800"}`}>
       <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
       <span>
         {children}

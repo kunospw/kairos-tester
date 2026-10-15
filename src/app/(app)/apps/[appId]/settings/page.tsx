@@ -65,7 +65,7 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
         <ol className="space-y-1.5 text-sm">
           {steps.map((s) => (
             <li key={s.label} className="flex flex-wrap items-baseline gap-2">
-              <span className={`w-5 shrink-0 font-semibold ${s.done ? "text-green-700" : "text-slate-400"}`} aria-label={s.done ? "done" : "to do"}>
+              <span className={`w-5 shrink-0 font-semibold ${s.done ? "text-green-700" : "text-slate-500"}`} aria-label={s.done ? "done" : "to do"}>
                 {s.done ? "✓" : "○"}
               </span>
               <span className={s.done ? "text-slate-700" : "font-medium text-slate-900"}>{s.label}</span>
@@ -167,7 +167,7 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
                 return (
                   <tr key={b.id}>
                     <td className="whitespace-nowrap text-xs">{formatDateTime(b.createdAt)}</td>
-                    <td className="text-xs">{b.fileName}<div className="text-slate-400">sha256 {b.fileSha256.slice(0, 12)}…</div></td>
+                    <td className="text-xs">{b.fileName}<div className="text-slate-500">sha256 {b.fileSha256.slice(0, 12)}…</div></td>
                     <td className="text-xs">{b.sheetName ?? "—"}</td>
                     <td className="text-xs">{b.cycle.name}</td>
                     <td className="text-xs">{b.importedBy}</td>

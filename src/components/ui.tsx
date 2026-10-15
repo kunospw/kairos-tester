@@ -71,7 +71,7 @@ export function PriorityBadge({ priority }: { priority: PriorityValue }) {
 }
 
 export function ModeBadge({ mode }: { mode: ExecutionModeValue }) {
-  return <span className={`whitespace-nowrap text-xs ${mode === "UNKNOWN" ? "text-slate-400" : "text-slate-600"}`}>{mode === "UNKNOWN" ? "Mode unknown" : EXECUTION_MODE_LABEL[mode]}</span>;
+  return <span className={`whitespace-nowrap text-xs ${mode === "UNKNOWN" ? "text-slate-500" : "text-slate-600"}`}>{mode === "UNKNOWN" ? "Mode unknown" : EXECUTION_MODE_LABEL[mode]}</span>;
 }
 
 export function FlagBadge({ type, title }: { type: string; title?: string }) {
@@ -225,7 +225,7 @@ export function Field({ label, children, hint, htmlFor }: { label: string; child
 }
 
 export function Prewrap({ text, empty = "—" }: { text: string | null | undefined; empty?: string }) {
-  if (!text) return <span className="text-slate-400">{empty}</span>;
+  if (!text) return <span className="text-slate-500">{empty}</span>;
   return <div className="prewrap">{text}</div>;
 }
 
