@@ -43,3 +43,17 @@ describe("pickRecipe", () => {
     expect(pickRecipe([stored({ id: "bad", steps: [{ type: "finish" }] })], upload, "env")).toBeNull();
   });
 });
+
+describe("recipe draft leniency", () => {
+  it("fills in a missing check description instead of discarding the draft", () => {
+    const r = recipeDraftSchema.safeParse({
+      name: "Upload file",
+      explanation: "x",
+      matchRule: { titlePattern: "upload" },
+      steps: [click],
+      successChecks: [{ type: "check", kind: "text_visible", text: "Upload complete" }],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.successChecks[0]).toMatchObject({ description: "text visible: Upload complete" });
+  });
+});

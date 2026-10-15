@@ -42,6 +42,17 @@ export const matchRuleSchema = z
   );
 export type MatchRule = z.infer<typeof matchRuleSchema>;
 
+/** Models often leave out a check's description; derive one from the check so a good draft is not lost. */
+function withDescriptions(v: unknown): unknown {
+  if (!Array.isArray(v)) return v;
+  return v.map((c) => {
+    if (!c || typeof c !== "object" || (c as { description?: unknown }).description) return c;
+    const k = c as { kind?: string; text?: string; name?: string; role?: string };
+    const what = k.text ?? [k.role, k.name && `"${k.name}"`].filter(Boolean).join(" ");
+    return { ...c, description: `${(k.kind ?? "check").replace(/_/g, " ")}${what ? `: ${what}` : ""}` };
+  });
+}
+
 /** What the AI proposes (and the reviewer may edit) before it becomes a Recipe. */
 export const recipeDraftSchema = z.object({
   name: str.min(3).max(120),
@@ -50,7 +61,7 @@ export const recipeDraftSchema = z.object({
   priority: z.number().int().min(0).max(100).default(0),
   matchRule: matchRuleSchema,
   steps: z.array(recipeStepSchema).min(1).max(40),
-  successChecks: z.array(recipeCheckSchema).min(1).max(10),
+  successChecks: z.preprocess(withDescriptions, z.array(recipeCheckSchema).min(1).max(10)),
 });
 export type RecipeDraft = z.infer<typeof recipeDraftSchema>;
 
