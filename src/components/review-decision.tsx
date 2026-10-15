@@ -104,11 +104,11 @@ export function ReviewDecision({
         ))}
         {recheckRequestId && (
           <button className="btn-ghost" disabled={Boolean(busy)} onClick={recheck} title="Fix it first; the AI revisits the case next and confirms the result">
-            {busy === "recheck" ? "Sending…" : "Fixed, re-test it"}
+            {busy === "recheck" ? "Sending…" : "I fixed it, test again"}
           </button>
         )}
       </div>
-      <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (needed for Fail, Blocked or N/A) or a note for the re-test" aria-label="Reason" />
+      <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why? Required for Fail, Blocked and N/A. Or a note for the re-test." aria-label="Reason" />
     </div>
   );
 }

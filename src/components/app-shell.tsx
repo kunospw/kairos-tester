@@ -50,7 +50,7 @@ export function AppShell({ apps, user, children }: { apps: { id: string; name: s
             </Link>
           )}
           {app && <NotifyToggle />}
-          <NavLink href="/settings" active={path === "/settings"} icon={<IconCog />}>Settings</NavLink>
+          <NavLink href="/settings" active={path === "/settings"} icon={<IconCog />}>Server settings</NavLink>
           <div className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm">
             <span className="truncate text-slate-600" title={`Signed in as ${user}`}>{user}</span>
             <SignOut />

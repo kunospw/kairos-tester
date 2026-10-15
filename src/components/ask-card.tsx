@@ -105,7 +105,7 @@ export function AskCard({
             {b("override_pass", "It passed")}
             {b("override_fail", "Fail")}
             {b("override_blocked", "Blocked")}
-            {b("recheck", "Fixed, re-test it", "btn-ghost")}
+            {b("recheck", "I fixed it, test again", "btn-ghost")}
           </>
         )}
         {req.kind === "MANUAL_CASE" && b("recheck", "Done, let the AI check it", "btn-primary")}

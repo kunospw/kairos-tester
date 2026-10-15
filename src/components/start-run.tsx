@@ -137,12 +137,16 @@ export function StartRun({
                 {resumable.map((r) => <option key={r.id} value={r.id}>{r.name}: {r.notRun} not tested</option>)}
               </select>
             )}
-            <Check checked={includeBlocked} onChange={setIncludeBlocked} disabled={!round.blocked}>
-              Retry the {round.blocked} blocked case{round.blocked === 1 ? "" : "s"}
-            </Check>
-            <Check checked={includeFailed} onChange={setIncludeFailed} disabled={!round.failed}>
-              Retest the {round.failed} failed case{round.failed === 1 ? "" : "s"}, e.g. after a fix
-            </Check>
+            {round.blocked > 0 && (
+              <Check checked={includeBlocked} onChange={setIncludeBlocked}>
+                Retry the {round.blocked} blocked case{round.blocked === 1 ? "" : "s"}
+              </Check>
+            )}
+            {round.failed > 0 && (
+              <Check checked={includeFailed} onChange={setIncludeFailed}>
+                Retest the {round.failed} failed case{round.failed === 1 ? "" : "s"}, e.g. after a fix
+              </Check>
+            )}
             <Check checked={withSetup} onChange={setWithSetup} hint="Re-runs earlier passed cases that later ones depend on (uploads, mappings, approvals). Their results go to a separate setup round.">
               Rebuild the test data first
             </Check>

@@ -97,7 +97,7 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
         </div>
         <StatusBar pass={m.PASS} fail={m.FAIL} blocked={m.BLOCKED} notRun={m.NOT_RUN} />
         <p className="mt-2 text-xs text-slate-500">
-          Pass rate = Pass ÷ (Pass + Fail); it is not a release-readiness measure. Customer acceptance is recorded separately (not recorded).
+          Pass rate = Pass ÷ (Pass + Fail). It does not say whether the build is ready to release.
         </p>
       </section>
 
