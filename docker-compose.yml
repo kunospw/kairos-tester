@@ -1,0 +1,25 @@
+# Optional local PostgreSQL for Kairos Tester.
+# Usage (PowerShell):  docker compose up -d
+# Data persists in the named volume "kairos_tester_pgdata".
+services:
+  postgres:
+    image: postgres:18
+    container_name: kairos-tester-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kairos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: kairos_tester
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - kairos_tester_pgdata:/var/lib/postgresql
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kairos -d kairos_tester"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kairos_tester_pgdata:

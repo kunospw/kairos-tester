@@ -1,0 +1,702 @@
+// Kairos Tester data model.
+//
+// Key rules encoded here:
+// - Internal IDs (cuid) are independent of imported/external case IDs.
+// - TestCaseVersion rows are immutable; editing a case creates a new version.
+// - ExecutionAttempt rows reference the exact case version they used. Retesting
+//   creates a new attempt; earlier attempts and their evidence are preserved.
+// - Simulated data lives only in SIMULATION cycles and is flagged on every
+//   attempt/evidence row so it can never be counted in real summaries.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- auth
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  username   String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------- applications
+
+model Application {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  environments     Environment[]
+  cycles           TestCycle[]
+  cases            TestCase[]
+  contextEntries   ContextEntry[]
+  sourceReferences SourceReference[]
+  importBatches    ImportBatch[]
+  aiProposals      AiProposal[]
+  findings         Finding[]
+}
+
+enum EnvironmentType {
+  DEVELOPMENT
+  TEST
+  DEMO
+  UAT
+  STAGING
+  PRODUCTION
+  OTHER
+}
+
+model Environment {
+  id            String          @id @default(cuid())
+  applicationId String
+  name          String
+  type          EnvironmentType @default(OTHER)
+  targetUrl     String?
+  notes         String?
+  /// Throwaway data: the AI runner may run cases that create or delete data here.
+  disposable    Boolean         @default(false)
+  /// How the AI runner signs in, switches roles and stays safe (see src/lib/agent-profile.ts).
+  agentProfile  Json?
+  createdAt     DateTime        @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  cycles      TestCycle[]
+  runs        TestRun[]
+
+  @@unique([applicationId, name])
+}
+
+enum SourceKind {
+  WORKBOOK
+  DOCUMENT
+  URL
+  REPOSITORY
+  CONVERSATION
+  OTHER
+}
+
+// Where knowledge about an application came from (workbook sheet, spec, URL...).
+model SourceReference {
+  id            String     @id @default(cuid())
+  applicationId String
+  kind          SourceKind @default(OTHER)
+  title         String
+  location      String?
+  notes         String?
+  createdAt     DateTime   @default(now())
+
+  application    Application    @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  contextEntries ContextEntry[]
+  importBatches  ImportBatch[]
+}
+
+enum ContextCategory {
+  ROLES_PERMISSIONS
+  BUSINESS_WORKFLOWS
+  BUSINESS_RULES
+  TECHNICAL_DETAILS
+  REQUIREMENTS_REFERENCES
+  CONSTRAINTS_GAPS
+}
+
+enum ContextStatus {
+  UNREVIEWED
+  REVIEWED
+  OUTDATED
+}
+
+model ContextEntry {
+  id                String          @id @default(cuid())
+  applicationId     String
+  category          ContextCategory
+  title             String
+  body              String
+  status            ContextStatus   @default(UNREVIEWED)
+  sourceReferenceId String?
+  sourceExcerpt     String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  application     Application      @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  sourceReference SourceReference? @relation(fields: [sourceReferenceId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------- cases
+
+enum ExecutionMode {
+  UNKNOWN
+  MANUAL
+  AUTOMATED
+  HYBRID
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+  UNSET
+}
+
+enum CaseOrigin {
+  IMPORT
+  MANUAL
+  AI_PROPOSAL
+}
+
+model TestCase {
+  id            String     @id @default(cuid())
+  applicationId String
+  externalId    String
+  origin        CaseOrigin
+  archived      Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  createdBy     String?
+
+  application Application        @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  versions    TestCaseVersion[]
+  cycleCases  CycleCase[]
+  automation  AutomationBinding?
+  findings    Finding[]
+  importRows  ImportRow[]
+
+  @@unique([applicationId, externalId])
+}
+
+enum VersionSource {
+  IMPORT
+  IMPORT_UPDATE
+  MANUAL
+  AI_PROPOSAL
+}
+
+// Immutable. Never update a row in this table; insert a new version instead.
+model TestCaseVersion {
+  id             String        @id @default(cuid())
+  testCaseId     String
+  versionNumber  Int
+  title          String
+  section        String?
+  role           String?
+  environment    String?
+  preconditions  String?
+  stepsText      String?
+  /// Structured checks: [{ "text": string, "required": boolean }]
+  steps          Json          @default("[]")
+  expectedResult String?
+  testData       String?
+  priority       Priority      @default(UNSET)
+  executionMode  ExecutionMode @default(UNKNOWN)
+  categories     String[]      @default([])
+  dependsOn      String?
+  changeNote     String?
+  source         VersionSource
+  importRowId    String?       @unique
+  aiProposalItemId String?     @unique
+  createdBy      String?
+  createdAt      DateTime      @default(now())
+
+  testCase       TestCase           @relation(fields: [testCaseId], references: [id], onDelete: Restrict)
+  importRow      ImportRow?         @relation(fields: [importRowId], references: [id], onDelete: Restrict)
+  aiProposalItem AiProposalItem?    @relation(fields: [aiProposalItemId], references: [id], onDelete: Restrict)
+  cycleCases     CycleCase[]
+  attempts       ExecutionAttempt[]
+
+  @@unique([testCaseId, versionNumber])
+}
+
+model AutomationBinding {
+  id             String    @id @default(cuid())
+  testCaseId     String    @unique
+  runnerType     String
+  externalTestId String?
+  scriptRef      String?
+  notes          String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------- cycles & execution
+
+enum CycleKind {
+  STANDARD
+  HISTORICAL_IMPORT
+  SIMULATION
+}
+
+enum CycleStatus {
+  OPEN
+  CLOSED
+}
+
+model TestCycle {
+  id            String      @id @default(cuid())
+  applicationId String
+  name          String
+  kind          CycleKind   @default(STANDARD)
+  status        CycleStatus @default(OPEN)
+  scope         String?
+  excludedScope String?
+  environmentId String?
+  buildLabel    String?
+  createdAt     DateTime    @default(now())
+  createdBy     String?
+
+  application   Application      @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  environment   Environment?     @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  cycleCases    CycleCase[]
+  reports       ReportSnapshot[]
+  importBatches ImportBatch[]
+  runs          TestRun[]
+
+  @@unique([applicationId, name])
+}
+
+model CycleCase {
+  id            String   @id @default(cuid())
+  cycleId       String
+  testCaseId    String
+  caseVersionId String
+  sortOrder     Int      @default(0)
+  importNotes   String?
+  createdAt     DateTime @default(now())
+
+  cycle       TestCycle          @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  testCase    TestCase           @relation(fields: [testCaseId], references: [id], onDelete: Restrict)
+  caseVersion TestCaseVersion    @relation(fields: [caseVersionId], references: [id], onDelete: Restrict)
+  attempts    ExecutionAttempt[]
+  findings    Finding[]
+  runItems    RunItem[]
+
+  @@unique([cycleId, testCaseId])
+}
+
+enum AttemptStatus {
+  DRAFT
+  RUNNING
+  AWAITING_REVIEW
+  COMPLETED
+}
+
+enum Outcome {
+  PASS
+  FAIL
+  BLOCKED
+  NOT_RUN
+  NOT_APPLICABLE
+}
+
+enum ExecutionMethod {
+  UNKNOWN
+  MANUAL
+  AUTOMATED
+  HYBRID
+  SIMULATED
+  AI_DRIVEN
+}
+
+enum AttemptSource {
+  IMPORT
+  MANUAL
+  RUNNER
+  SIMULATION
+  AI_AGENT
+}
+
+model ExecutionAttempt {
+  id                  String          @id @default(cuid())
+  cycleCaseId         String
+  caseVersionId       String
+  attemptNumber       Int
+  status              AttemptStatus   @default(DRAFT)
+  outcome             Outcome?
+  outcomeReason       String?
+  actualResult        String?
+  remarks             String?
+  partialCoverage     Boolean         @default(false)
+  partialCoverageNote String?
+  tester              String?
+  executionMethod     ExecutionMethod @default(UNKNOWN)
+  buildLabel          String?
+  source              AttemptSource
+  isSimulated         Boolean         @default(false)
+  /// Date-only execution date (imported dates have no time component).
+  executedOn          DateTime?       @db.Date
+  startedAt           DateTime?
+  completedAt         DateTime?
+  /// Outcome suggested by an AI agent run. Never counted; a human sets `outcome`.
+  proposedOutcome     Outcome?
+  /// Which agent/model drove an AI-driven attempt (e.g. "Claude Code + Playwright").
+  agentLabel          String?
+  /// Agent's self-reported confidence (0-1) for AI-driven attempts.
+  aiConfidence        Float?
+  humanCheckpointBy   String?
+  humanCheckpointAt   DateTime?
+  importRowId         String?         @unique
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  cycleCase    CycleCase       @relation(fields: [cycleCaseId], references: [id], onDelete: Restrict)
+  caseVersion  TestCaseVersion @relation(fields: [caseVersionId], references: [id], onDelete: Restrict)
+  importRow    ImportRow?      @relation(fields: [importRowId], references: [id], onDelete: Restrict)
+  stepOutcomes StepOutcome[]
+  evidence     Evidence[]
+  findings     Finding[]
+  runItems     RunItem[]
+
+  @@unique([cycleCaseId, attemptNumber])
+  @@index([cycleCaseId, status])
+}
+
+enum StepResult {
+  PASS
+  FAIL
+  BLOCKED
+  NOT_APPLICABLE
+  NOT_RUN
+}
+
+model StepOutcome {
+  id        String     @id @default(cuid())
+  attemptId String
+  stepIndex Int
+  stepText  String
+  required  Boolean    @default(true)
+  result    StepResult @default(NOT_RUN)
+  note      String?
+
+  attempt ExecutionAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, stepIndex])
+}
+
+model Evidence {
+  id           String   @id @default(cuid())
+  attemptId    String
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  caption      String?
+  isSimulated  Boolean  @default(false)
+  uploadedBy   String
+  createdAt    DateTime @default(now())
+
+  attempt ExecutionAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+}
+
+// ---------------------------------------------------------------- review flags
+
+enum FindingType {
+  APPLICATION_FAILURE
+  BLOCKED_OR_SETUP
+  INCOMPLETE_TESTING
+  AMBIGUOUS_OR_OUTDATED
+}
+
+enum FindingSource {
+  IMPORT_RULE
+  AI_REVIEW
+  MANUAL
+}
+
+enum FindingStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model Finding {
+  id               String        @id @default(cuid())
+  applicationId    String
+  testCaseId       String?
+  cycleCaseId      String?
+  attemptId        String?
+  type             FindingType
+  source           FindingSource
+  status           FindingStatus @default(OPEN)
+  message          String
+  evidenceExcerpt  String?
+  aiProposalItemId String?       @unique
+  resolutionNote   String?
+  createdBy        String?
+  createdAt        DateTime      @default(now())
+  resolvedAt       DateTime?
+
+  application    Application       @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  testCase       TestCase?         @relation(fields: [testCaseId], references: [id], onDelete: Restrict)
+  cycleCase      CycleCase?        @relation(fields: [cycleCaseId], references: [id], onDelete: Restrict)
+  attempt        ExecutionAttempt? @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  aiProposalItem AiProposalItem?   @relation(fields: [aiProposalItemId], references: [id], onDelete: Restrict)
+}
+
+// ---------------------------------------------------------------- import provenance
+
+model ImportBatch {
+  id                String   @id @default(cuid())
+  applicationId     String
+  cycleId           String
+  sourceReferenceId String?
+  fileName          String
+  fileSha256        String
+  fileType          String
+  sheetName         String?
+  mapping           Json
+  options           Json
+  stats             Json
+  importedBy        String
+  createdAt         DateTime @default(now())
+
+  application     Application      @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  cycle           TestCycle        @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  sourceReference SourceReference? @relation(fields: [sourceReferenceId], references: [id], onDelete: SetNull)
+  rows            ImportRow[]
+}
+
+enum ImportRowAction {
+  SECTION
+  CREATED
+  UPDATED
+  SKIPPED
+  ERROR
+}
+
+// Original row content, kept verbatim for provenance.
+model ImportRow {
+  id         String          @id @default(cuid())
+  batchId    String
+  rowNumber  Int
+  section    String?
+  raw        Json
+  action     ImportRowAction
+  message    String?
+  testCaseId String?
+
+  batch    ImportBatch       @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  testCase TestCase?         @relation(fields: [testCaseId], references: [id], onDelete: Restrict)
+  version  TestCaseVersion?
+  attempt  ExecutionAttempt?
+
+  @@index([batchId])
+}
+
+// ---------------------------------------------------------------- AI
+
+enum AiProposalKind {
+  DRAFT_CASES
+  REVIEW_RESULTS
+  REPORT_SUMMARY
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model AiProposal {
+  id            String         @id @default(cuid())
+  applicationId String
+  kind          AiProposalKind
+  model         String
+  /// Human-readable description of what was submitted to the provider.
+  submittedContext Json
+  /// Validated structured output as returned by the provider.
+  output        Json
+  cycleId       String?
+  reportId      String?
+  requestedBy   String
+  durationMs    Int?
+  createdAt     DateTime       @default(now())
+
+  application Application      @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  items       AiProposalItem[]
+}
+
+model AiProposalItem {
+  id            String         @id @default(cuid())
+  proposalId    String
+  index         Int
+  /// Original AI output for this item (never modified).
+  originalPayload Json
+  /// Reviewer-edited payload (starts as a copy of the original).
+  payload       Json
+  status        ProposalStatus @default(PENDING)
+  decidedBy     String?
+  decidedAt     DateTime?
+  decisionNote  String?
+
+  proposal AiProposal       @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  version  TestCaseVersion?
+  finding  Finding?
+
+  @@unique([proposalId, index])
+}
+
+// ---------------------------------------------------------------- reports
+
+enum ReportStatus {
+  DRAFT
+  FINAL
+}
+
+model ReportSnapshot {
+  id                 String       @id @default(cuid())
+  cycleId            String
+  title              String
+  status             ReportStatus @default(DRAFT)
+  includedScope      String?
+  excludedScope      String?
+  /// Frozen copy of computed metrics and case rows at snapshot time.
+  data               Json
+  aiSummary          String?
+  aiSummaryReviewed  Boolean      @default(false)
+  aiSummaryReviewedBy String?
+  aiProposalId       String?
+  customerAcceptance String       @default("NOT_RECORDED")
+  createdBy          String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  cycle TestCycle @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+}
+
+// ---------------------------------------------------------------- AI test runs
+
+enum RunStatus {
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum RunItemStatus {
+  QUEUED
+  RUNNING
+  NEEDS_HUMAN
+  DONE
+  SKIPPED
+  ERROR
+}
+
+/// SETUP items rebuild data that later cases need; their results go to a separate setup cycle.
+enum RunItemPurpose {
+  TEST
+  SETUP
+}
+
+enum RunPlan {
+  AUTOMATABLE
+  NEEDS_HUMAN
+  NOT_ALLOWED
+}
+
+/// One AI-driven execution of a set of cases. Each run gets its own cycle.
+model TestRun {
+  id            String    @id @default(cuid())
+  cycleId       String
+  environmentId String
+  status        RunStatus @default(RUNNING)
+  model         String
+  startedBy     String
+  createdAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  cycle       TestCycle   @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Restrict)
+  items       RunItem[]
+  events      RunEvent[]
+}
+
+model RunItem {
+  id          String        @id @default(cuid())
+  runId       String
+  cycleCaseId String
+  sortOrder   Int
+  purpose     RunItemPurpose @default(TEST)
+  plan        RunPlan
+  planReason  String?
+  status      RunItemStatus @default(QUEUED)
+  statusNote  String?
+  currentStep String?
+  attemptId   String?
+  lastShotId  String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  updatedAt   DateTime      @updatedAt
+
+  run       TestRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  cycleCase CycleCase         @relation(fields: [cycleCaseId], references: [id], onDelete: Restrict)
+  attempt   ExecutionAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  requests  HumanRequest[]
+
+  @@index([runId, status])
+}
+
+enum HumanRequestKind {
+  MANUAL_CASE
+  INPUT
+  CONFIRM_RESULT
+  RUN_ERROR
+}
+
+enum HumanRequestStatus {
+  OPEN
+  ANSWERED
+  SKIPPED
+}
+
+/// Something only a person can do. Everything else the runner does by itself.
+model HumanRequest {
+  id         String             @id @default(cuid())
+  runItemId  String
+  kind       HumanRequestKind
+  question   String
+  detail     String?
+  status     HumanRequestStatus @default(OPEN)
+  answer     String?
+  answeredBy String?
+  answeredAt DateTime?
+  createdAt  DateTime           @default(now())
+
+  runItem RunItem @relation(fields: [runItemId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model RunEvent {
+  id        String   @id @default(cuid())
+  runId     String
+  runItemId String?
+  message   String
+  createdAt DateTime @default(now())
+
+  run TestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+}
+
+/// Heartbeat of the local runner process (single row, id "local").
+model RunnerStatus {
+  id         String   @id
+  lastSeenAt DateTime
+  info       String?
+}

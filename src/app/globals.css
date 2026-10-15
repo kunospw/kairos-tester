@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-50: #f2f5fa;
+  --color-navy-100: #e1e8f3;
+  --color-navy-200: #c4d0e4;
+  --color-navy-300: #94a8c9;
+  --color-navy-500: #4a6391;
+  --color-navy-600: #344b78;
+  --color-navy-700: #263a62;
+  --color-navy-800: #1b2b4d;
+  --color-navy-900: #121e38;
+  --color-teal-50: #effaf8;
+  --color-teal-100: #d3f1ec;
+  --color-teal-500: #1f9e8f;
+  --color-teal-600: #158376;
+  --color-teal-700: #106a60;
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-teal-600;
+  }
+}
+
+/* Base button: an @utility so the variants below can @apply it (Tailwind v4). */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@layer components {
+  .btn-primary {
+    @apply btn bg-navy-700 text-white hover:bg-navy-800;
+  }
+  .btn-accent {
+    @apply btn bg-teal-600 text-white hover:bg-teal-700;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply btn border border-red-300 bg-white text-red-700 hover:bg-red-50;
+  }
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+  .input {
+    @apply block w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600 disabled:bg-slate-100;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600;
+  }
+  .card {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
+  .table-base {
+    @apply w-full border-collapse text-sm;
+  }
+  .table-base th {
+    @apply border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600;
+  }
+  .table-base td {
+    @apply border-b border-slate-100 px-3 py-2 align-top;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-slate-50/70;
+  }
+  .prewrap {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .print-break {
+    break-before: page;
+  }
+  .card {
+    box-shadow: none;
+    border-color: #cbd5e1;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# next.js / build output
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# generated prisma client
+src/generated/
+
+# secrets - never commit real environment files
+.env
+.env.*
+!.env.example
+
+# evidence uploads, backups and local data
+storage/
+backups/
+*.dump
+*.sql.gz
+
+# test / tool output
+coverage/
+test-results/
+playwright-report/
+smoke-output/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
