@@ -8,6 +8,7 @@ import {
   acceptFindingSchema,
   acceptReportSummary,
 } from "@/server/services/ai-service";
+import { acceptRecipe, acceptRecipeSchema } from "@/server/services/recipe-service";
 
 export const POST = api<{ params: Promise<{ appId: string; itemId: string }> }>(async (req, { params, user }) => {
   const { appId, itemId } = await params;
@@ -23,6 +24,8 @@ export const POST = api<{ params: Promise<{ appId: string; itemId: string }> }>(
       const { text } = await parseJson(req, z.object({ text: z.string().max(20000) }));
       return acceptReportSummary(db, appId, itemId, text, user.displayName);
     }
+    case "RECIPE":
+      return acceptRecipe(db, appId, itemId, await parseJson(req, acceptRecipeSchema), user.displayName);
     default:
       throw badRequest("Unknown proposal type.");
   }

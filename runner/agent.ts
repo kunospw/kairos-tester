@@ -8,6 +8,7 @@ import { agentReplySchema, type AgentAction, type CheckRecord, type StepRecord }
 import { parseProfile } from "@/lib/agent-profile";
 import { addEvidence } from "@/server/services/evidence-service";
 import { askAndWait, finishAgentAttempt, failItem, openAgentAttempt, parkItem, previousAnswers, progress, skipItem, unmetDependency, type ClaimedItem } from "@/server/services/run-service";
+import { ACTIONS_PREFIX, pickRecipe } from "@/lib/recipes";
 import { Session } from "./browser";
 
 const MAX_TURNS = Number(process.env.RUNNER_MAX_ACTIONS || 30);
@@ -120,7 +121,63 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     });
   };
 
+  /** Run a reviewed recipe step (same browser guards as AI actions). Returns the outcome text. */
+  const doStep = async (a: AgentAction): Promise<string> => {
+    if (a.type === "act_as") return session.actAs(a.role);
+    if (a.type === "screenshot") {
+      await shoot(a.caption);
+      return "Screenshot saved.";
+    }
+    return session.perform(a);
+  };
+
   try {
+    // A reviewed recipe goes first. SETUP cases finish on it when its checks pass;
+    // for TEST cases it only prepares the state, and the AI still verifies the case itself.
+    const recipes = await db.recipe.findMany({ where: { applicationId: item.cycleCase.testCase.applicationId, status: "ACTIVE" } });
+    const recipe = pickRecipe(recipes, { externalId: ext, title: v.title, section: v.section, purpose: item.purpose }, item.run.environmentId);
+    if (recipe) {
+      await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${ext}: trying recipe "${recipe.name}".` } });
+      let failedAt: string | null = null;
+      try {
+        if (!session.signedIn && recipe.steps[0]?.type !== "act_as") await session.actAs(v.role ?? "Any");
+        for (const [i, step] of recipe.steps.entries()) {
+          await progress(db, item.id, `Recipe "${recipe.name}": ${describe(step)}`, item.runId);
+          const r = await doStep(step);
+          history.push(`recipe ${i + 1}/${recipe.steps.length} ${JSON.stringify(step)} -> ${r}`);
+          if (/^(REFUSED|Refused|Unknown role|Not a browser action)/.test(r)) {
+            failedAt = `step ${i + 1} (${describe(step)}): ${r}`;
+            break;
+          }
+        }
+      } catch (e) {
+        failedAt = String((e as Error).message).split("\n")[0].slice(0, 200);
+      }
+      const recipeChecks: CheckRecord[] = [];
+      if (!failedAt) for (const c of recipe.checks) if (c.type === "check") recipeChecks.push(await session.check(c));
+      const bad = recipeChecks.find((c) => !c.passed);
+      if (bad) failedAt = `success check failed: ${bad.description} (${bad.detail})`;
+      if (!failedAt && item.purpose === "SETUP") {
+        await shoot(`Done by recipe: ${recipe.name}`);
+        await finishAgentAttempt(db, item, attempt.id, {
+          verdict: "PASS",
+          summary: `Done by reviewed recipe "${recipe.name}"; no AI improvisation.`,
+          confidence: 1,
+          checks: recipeChecks,
+          steps: stepRecords,
+          screenshots: shots,
+          partialNote,
+        });
+        return;
+      }
+      if (failedAt) {
+        history.push(`Recipe "${recipe.name}" did not finish (${failedAt}). Carry on yourself from the current page.`);
+        await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${ext}: recipe "${recipe.name}" failed (${failedAt}); AI takes over.` } });
+      } else {
+        history.push(`Recipe "${recipe.name}" prepared the application. Still verify this case yourself with checks.`);
+      }
+    }
+
     for (let turn = 0; turn < MAX_TURNS; turn++) {
       const snapshot = await session.snapshot();
       const left = MAX_TURNS - turn;
@@ -239,6 +296,12 @@ Next action?`;
     await shoot("State when the run stopped").catch(() => {});
     await failItem(db, item, attempt.id, String((e as Error).message).split("\n")[0].slice(0, 300));
   } finally {
+    // Keep what the AI did so a person can ask for a recipe from it later.
+    if (history.length) {
+      await db.runEvent
+        .create({ data: { runId: item.runId, runItemId: item.id, message: `${ACTIONS_PREFIX}${ext}\n${history.slice(-40).join("\n")}`.slice(0, 8000) } })
+        .catch(() => {});
+    }
     await session.close();
   }
 }

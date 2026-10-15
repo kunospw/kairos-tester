@@ -34,6 +34,8 @@ export function ProposalItems({ appId, kind, items, cases }: { appId: string; ki
             <DraftCaseItem appId={appId} item={item} cases={cases} />
           ) : kind === "REVIEW_RESULTS" ? (
             <FindingItem appId={appId} item={item} />
+          ) : kind === "RECIPE" ? (
+            <RecipeItem appId={appId} item={item} />
           ) : (
             <SummaryItem appId={appId} item={item} />
           )}
@@ -263,6 +265,71 @@ function SummaryItem({ appId, item }: { appId: string; item: ItemView }) {
       <div className="flex flex-wrap items-center gap-2">
         <button className="btn-accent" disabled={d.busy || !text.trim()} onClick={() => d.accept({ text })}>Accept into report (marked human-reviewed)</button>
         <button className="btn-secondary" disabled={d.busy} onClick={() => d.saveEdits({ text })}>Save edits</button>
+        <RejectControls d={d} />
+      </div>
+    </div>
+  );
+}
+
+function RecipeItem({ appId, item }: { appId: string; item: ItemView }) {
+  const d = useDecision(appId, item.id);
+  const p = item.payload;
+  const [name, setName] = useState(String(p.name ?? ""));
+  const [explanation, setExplanation] = useState(String(p.explanation ?? ""));
+  const [scope, setScope] = useState(String(p.scope ?? "ALL"));
+  const [priority, setPriority] = useState(String(p.priority ?? 0));
+  const [matchRule, setMatchRule] = useState(JSON.stringify(p.matchRule ?? {}, null, 2));
+  const [steps, setSteps] = useState(JSON.stringify(p.steps ?? [], null, 2));
+  const [checks, setChecks] = useState(JSON.stringify(p.successChecks ?? [], null, 2));
+  const [parseError, setParseError] = useState<string | null>(null);
+  const problems = (p.problems as string[]) ?? [];
+
+  const accept = () => {
+    try {
+      setParseError(null);
+      return d.accept({
+        name,
+        explanation,
+        scope,
+        priority: Number(priority),
+        matchRule: JSON.parse(matchRule),
+        steps: JSON.parse(steps),
+        successChecks: JSON.parse(checks),
+      });
+    } catch {
+      setParseError("Match rule, steps and checks must be valid JSON.");
+    }
+  };
+
+  return (
+    <div className="space-y-3 text-sm">
+      <Alert kind="warning" title="A recipe is a script the runner will follow without asking the AI.">
+        Read every step. It runs only inside the application under test, only uploads approved test files and cannot touch protected items. If it fails, the AI takes over.
+      </Alert>
+      {problems.length > 0 && (
+        <Alert kind="error" title="The runner would refuse parts of this draft">
+          <ul className="list-disc pl-5">{problems.map((x, n) => <li key={n}>{x}</li>)}</ul>
+        </Alert>
+      )}
+      <label className="block">Name<input className="input mt-1 w-full" value={name} onChange={(e) => setName(e.target.value)} /></label>
+      <label className="block">Why it should work<textarea className="input mt-1 w-full" rows={2} value={explanation} onChange={(e) => setExplanation(e.target.value)} /></label>
+      <div className="flex flex-wrap gap-3">
+        <label>Use for
+          <select className="input mt-1 block" value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="SETUP">Setup runs only</option>
+            <option value="TEST">Tests only (prepares state; AI still verifies)</option>
+            <option value="ALL">Both</option>
+          </select>
+        </label>
+        <label>Priority<input className="input mt-1 block w-24" type="number" min={0} max={100} value={priority} onChange={(e) => setPriority(e.target.value)} /></label>
+      </div>
+      <label className="block">Applies to cases matching (regular expressions)<textarea className="input mt-1 w-full font-mono text-xs" rows={4} value={matchRule} onChange={(e) => setMatchRule(e.target.value)} /></label>
+      <label className="block">Steps<textarea className="input mt-1 w-full font-mono text-xs" rows={12} value={steps} onChange={(e) => setSteps(e.target.value)} /></label>
+      <label className="block">Success checks (all must pass)<textarea className="input mt-1 w-full font-mono text-xs" rows={6} value={checks} onChange={(e) => setChecks(e.target.value)} /></label>
+      {parseError && <p className="text-red-700">{parseError}</p>}
+      <FormError error={d.error} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button className="btn-primary" disabled={d.busy} onClick={accept}>Accept and activate recipe</button>
         <RejectControls d={d} />
       </div>
     </div>

@@ -48,7 +48,7 @@ function describe(messages: ChatMessage[], summary: string, items: string[]): Pr
   };
 }
 
-async function callStructured<T>(messages: ChatMessage[], schema: z.ZodType<T>) {
+export async function callStructured<T>(messages: ChatMessage[], schema: z.ZodType<T>) {
   const res = await ollamaChat(messages, { json: true });
   const json = extractJson(res.content);
   const parsed = schema.safeParse(json);
@@ -257,7 +257,7 @@ export async function generateReportSummary(db: Db, applicationId: string, repor
 
 // ------------------------------------------------------------------ review decisions
 
-async function pendingItem(db: Db, applicationId: string, itemId: string) {
+export async function pendingItem(db: Db, applicationId: string, itemId: string) {
   const item = await db.aiProposalItem.findUnique({ where: { id: itemId }, include: { proposal: true } });
   if (!item || item.proposal.applicationId !== applicationId) throw notFound("Proposal item not found.");
   if (item.status !== "PENDING") throw conflict(`This item was already ${item.status.toLowerCase()}.`);

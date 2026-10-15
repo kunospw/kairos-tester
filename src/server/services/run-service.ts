@@ -1,4 +1,5 @@
 // AI test runs: plan -> start -> runner executes -> people answer only what needs them.
+import { ACTIONS_PREFIX } from "@/lib/recipes";
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import type { Prisma } from "@/generated/prisma/client";
@@ -376,7 +377,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
           requests: { orderBy: { createdAt: "asc" } },
         },
       },
-      events: { orderBy: { createdAt: "desc" }, take: 30 },
+      events: { where: { NOT: { message: { startsWith: ACTIONS_PREFIX } } }, orderBy: { createdAt: "desc" }, take: 30 },
     },
   });
   if (!run) throw notFound("Run not found.");

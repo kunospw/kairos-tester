@@ -11,6 +11,7 @@ const KIND_LABEL: Record<string, string> = {
   DRAFT_CASES: "Drafted test cases",
   REVIEW_RESULTS: "Results review findings",
   REPORT_SUMMARY: "Report summary draft",
+  RECIPE: "Recipe draft",
 };
 
 export default async function ProposalPage({ params }: { params: Promise<{ appId: string; proposalId: string }> }) {
@@ -57,7 +58,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ appId
         }
       />
       <Alert kind="warning" title="AI proposals are drafts, not facts.">
-        Check every item against the source material. AI never decides pass/fail. Accepting creates or versions a case, records a review flag, or fills the report summary,
+        Check every item against the source material. AI never decides pass/fail. Accepting creates or versions a case, records a review flag, fills the report summary, or activates a runner recipe,
         and only for the item you accept.
       </Alert>
       <details className="card px-4 py-2 text-sm">

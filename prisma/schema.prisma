@@ -47,6 +47,7 @@ model Application {
   importBatches    ImportBatch[]
   aiProposals      AiProposal[]
   findings         Finding[]
+  recipes          Recipe[]
 }
 
 enum EnvironmentType {
@@ -505,6 +506,7 @@ enum AiProposalKind {
   DRAFT_CASES
   REVIEW_RESULTS
   REPORT_SUMMARY
+  RECIPE
 }
 
 enum ProposalStatus {
@@ -548,8 +550,52 @@ model AiProposalItem {
   proposal AiProposal       @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   version  TestCaseVersion?
   finding  Finding?
+  recipe   Recipe?
 
   @@unique([proposalId, index])
+}
+
+/// ACTIVE is only ever reached through an accepted RECIPE proposal item.
+enum RecipeStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum RecipeScope {
+  SETUP
+  TEST
+  ALL
+}
+
+/// A reviewed, deterministic action sequence the runner tries before improvising with the AI.
+/// Steps run through the same browser guards as AI actions (origin, upload folders, protected names).
+model Recipe {
+  id               String       @id @default(cuid())
+  applicationId    String
+  environmentId    String?
+  name             String
+  description      String?
+  /// { titlePattern?, sectionPattern?, externalIdPattern? } - case-insensitive regexes, all given must match.
+  matchRule        Json
+  scope            RecipeScope  @default(ALL)
+  /// Higher wins when several recipes match.
+  priority         Int          @default(0)
+  /// Ordered AgentAction-compatible steps.
+  steps            Json
+  /// Deterministic checks that must all pass for the recipe to count as done.
+  successChecks    Json
+  status           RecipeStatus @default(ACTIVE)
+  aiProposalItemId String       @unique
+  supersedesId     String?
+  createdBy        String
+  createdAt        DateTime     @default(now())
+  disabledBy       String?
+  disabledAt       DateTime?
+
+  application    Application    @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  aiProposalItem AiProposalItem @relation(fields: [aiProposalItemId], references: [id], onDelete: Restrict)
+
+  @@index([applicationId, status])
 }
 
 // ---------------------------------------------------------------- reports

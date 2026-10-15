@@ -1,4 +1,5 @@
 "use client";
+import { RecipeDraftButton } from "@/components/recipe-draft-button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -187,6 +188,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
                       ))}
                     </div>
                   )}
+                  {!["QUEUED", "RUNNING"].includes(it.status) && !(it.status === "DONE" && it.result === "PASS") && <RecipeDraftButton appId={appId} runItemId={it.id} />}
                   <Link className="text-xs text-teal-700 underline" href={`/apps/${appId}/cycles/${it.cycleId}/run/${it.cycleCaseId}`}>Full details</Link>
                 </div>
               )}
