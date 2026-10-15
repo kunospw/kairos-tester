@@ -11,7 +11,7 @@ const str = z.string().trim();
 export const ACTIONS_PREFIX = "[actions] ";
 
 /** Only plain browser actions may appear in a recipe: no verdicts, no questions, no step bookkeeping. */
-const RECIPE_ACTION_TYPES = ["act_as", "goto", "click", "fill", "select", "press", "upload", "wait", "screenshot"] as const;
+const RECIPE_ACTION_TYPES = ["act_as", "goto", "click", "click_text", "fill", "select", "press", "upload", "wait", "screenshot"] as const;
 
 export const recipeStepSchema = agentActionSchema.refine((a) => (RECIPE_ACTION_TYPES as readonly string[]).includes(a.type), {
   message: `Recipe steps may only use: ${RECIPE_ACTION_TYPES.join(", ")}.`,
@@ -61,7 +61,7 @@ export const recipeDraftSchema = z.object({
   priority: z.number().int().min(0).max(100).default(0),
   matchRule: matchRuleSchema,
   steps: z.array(recipeStepSchema).min(1).max(40),
-  successChecks: z.preprocess(withDescriptions, z.array(recipeCheckSchema).min(1).max(10)),
+  successChecks: z.preprocess(withDescriptions, z.array(recipeCheckSchema).min(1).max(20)),
 });
 export type RecipeDraft = z.infer<typeof recipeDraftSchema>;
 

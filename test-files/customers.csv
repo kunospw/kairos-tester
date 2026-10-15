@@ -1,0 +1,201 @@
+Customer Code,Company Name,Address,Country,Phone,Email,Payment Terms,Sales Rep,Credit Limit,Tax ID
+C0001,Maple Industries Co,"76 Station St, Shelbyville, 25352",US,555-4890,accounts@maple1.example,Net 30,LCHEN,100000,TX49329024
+C0002,Nova Logistics Limited,"45 Park Ave, Brockway, 60641",US,555-3535,accounts@nova2.example,N30,LCHEN,5000,TX23880617
+C0003,Maple Supplies Limited,"138 Church St, Ogdenville, 14612",US,555-2721,accounts@maple3.example,Net 30,LCHEN,25000,TX48848642
+C0004,Willow Logistics Limited,"138 Station St, Ogdenville, 14745",US,555-9413,accounts@willow4.example,Net 60,JSMITH,50000,TX50637042
+C0005,Acme Trading Ltd,"102 Queen St, Shelbyville, 58384",US,555-5790,accounts@nova5.example,COD,LCHEN,10000,TX35677420
+C0006,ACME Trading Limited,"191 High St, Riverside, 36913",US,555-5031,accounts@nova6.example,Net 60,JSMITH,25000,TX75577672
+C0007,Unity Engineering Pty Ltd,"74 Main Rd, Riverside, 87976",US,555-6545,accounts@unity7.example,Net 30,JSMITH,100000,TX56771109
+C0008,Delta Supplies Limited,"66 Church St, Springfield, 51198",US,555-5333,accounts@delta8.example,Net 30,JSMITH,50000,TX27257176
+C0009,Maple Trading Inc,"68 Market St, Springfield, 63968",US,555-5632,accounts@maple9.example,Net 30,AKHAN,10000,TX24835607
+C0010,Delta Distribution Co,"217 Market St, Shelbyville, 59293",US,555-2334,accounts@delta10.example,Weekly,JSMITH,25000,TX56370515
+C0011,Vertex Hardware Inc,"129 King St, North Haverbrook, 54798",US,555-4228,accounts@vertex11.example,30 days,AKHAN,25000,TX79117310
+C0012,Delta Industries Ltd,"179 Church St, Fairview, 27547",US,555-3362,accounts@delta12.example,COD,AKHAN,50000,TX72966326
+C0013,Maple Distribution Ltd,"109 Mill Lane, Capital City, 85587",US,555-8504,accounts@maple13.example,Cash on delivery,JSMITH,10000,TX26613945
+C0014,River Industries Limited,"54 Mill Lane, Capital City, 81347",US,555-8290,accounts@river14.example,30 days,LCHEN,5000,TX31915750
+C0015,Summit Industries Ltd,"193 Station St, North Haverbrook, 97412",US,555-1529,accounts@summit15.example,Net 30,AKHAN,50000,tx 1234 5674
+C0016,Juniper Trading Limited,"23 Queen St, Springfield, 88327",US,555-5764,accounts@juniper16.example,30 days,JSMITH,100000,TX60622506
+C0017,Eagle Packaging Limited,"169 High St, Shelbyville, 30488",US,555-7192,accounts@eagle17.example,Net 30,LCHEN,25000,TX48541997
+C0018,Granite Engineering LLC,"66 Queen St, Shelbyville, 15531",US,555-6508,accounts@granite18.example,60 days,LCHEN,5000,TX39998602
+C0019,Zenith Trading Inc,"16 Station St, Springfield, 98309",USA,555-7128,accounts@zenith19.example,Net 30,AKHAN,10000,TX86979400
+C0020,Pioneer Packaging Pty Ltd,"10 Main Rd, Riverside, 42508",US,555-5793,accounts@pioneer20.example,Net 30,AKHAN,10000,TX56070576
+C0021,Zenith Logistics Ltd,"84 Market St, Ogdenville, 67333",US,555-5235,accounts@zenith21.example,N30,LCHEN,10000,TX31103498
+C0022,Nova Hardware Inc,"178 Market St, North Haverbrook, 28846",US,555-5698,accounts@nova22.example,N30,JSMITH,50000,TX53813799
+C0023,Maple Hardware Pty Ltd,"99 Park Ave, North Haverbrook, 71359",US,555-4103,accounts@maple23.example,Net 30,LCHEN,100000,TX30035826
+C0024,Falcon Trading Co,"167 Queen St, North Haverbrook, 47056",US,555-6998,accounts@falcon24.example,Weekly,LCHEN,5000,TX80039538
+C0025,Harbor Retail Inc,"216 Church St, Shelbyville, 92882",US,555-1817,accounts@harbor25.example,30 days,AKHAN,25000,TX70766493
+C0026,Nova Engineering LLC,"77 Main Rd, Brockway, 30495",US,555-1219,accounts@nova26.example,30 days,AKHAN,10000,TX31323441
+C0027,Falcon Supplies Limited,"21 Park Ave, Fairview, 76257",US,555-6830,accounts@falcon27.example,N30,JSMITH,100000,TX98525190
+C0028,Harbor Hardware Inc,"249 Queen St, Capital City, 59668",US,555-9169,accounts@harbor28.example,N30,AKHAN,"5,000",TX48914961
+C0029,Summit Logistics LLC,"176 Station St, Fairview, 17511",US,555-4469,accounts@summit29.example,COD,LCHEN,5000,TX99303909
+C0030,Lumen Logistics Co,"124 King St, Shelbyville, 71322",US,555-5349,accounts@lumen30.example,Net 60,AKHAN,50000,TX91112628
+C0031,Acme Engineering Pty Ltd,"165 Queen St, Brockway, 95806",US,555-8043,accounts@acme31.example,COD,LCHEN,5000,TX61594421
+C0032,Kestrel Engineering LLC,"46 Church St, Brockway, 32284",US,555-4348,accounts@kestrel32.example,Net 30,JSMITH,25000,TX12345675
+C0033,Titan Engineering LLC,"248 Mill Lane, Shelbyville, 37458",US,555-6245,accounts@titan33.example,COD,LCHEN,25000,TX42498464
+C0034,Maple Logistics Pty Ltd,"68 Queen St, Brockway, 33813",US,555-1722,accounts@maple34.example,Net 30,JSMITH,25000,TX61148785
+C0035,Maple Engineering LLC,"124 Church St, Ogdenville, 66549",US,555-7870,accounts@maple35.example,Net 60,LCHEN,25000,TX63346645
+C0036,Lumen Trading Inc,"42 Market St, Springfield, 43116",US,555-9918,accounts@lumen36.example,Net 30,LCHEN,100000,TX61025614
+C0037,Pioneer Foods Co,"177 King St, North Haverbrook, 50294",US,555-8121,accounts@pioneer37.example,30 days,LCHEN,5000,TX15088398
+C0038,Lumen Supplies Co,"145 Market St, Fairview, 89121",US,555-8475,accounts@lumen38.example,COD,AKHAN,5000,TX19896083
+C0039,Delta Retail Co,"60 Station St, Capital City, 22976",US,555-4817,accounts@delta39.example,30 days,LCHEN,10000,TX92416585
+C0040,Willow Trading Co,"163 Queen St, Shelbyville, 22586",US,555-9956,accounts@willow40.example,N30,JSMITH,5000,TX98948620
+C0041,Granite Foods LLC,"191 Mill Lane, North Haverbrook, 33697",US,555-4878,accounts@granite41.example,Net 30,AKHAN,50000,TX54010832
+C0042,Acme Logistics Limited,"156 Park Ave, Riverside, 54781",US,555-2642,accounts@acme42.example,30 days,AKHAN,50000,TX82042737
+C0043,Kestrel Distribution Ltd,"111 Market St, North Haverbrook, 59504",US,555-6858,accounts@kestrel43.example,Cash on delivery,JSMITH,25000,TX95531570
+C0044,River Foods LLC,"17 King St, North Haverbrook, 77068",US,555-8625,accounts@river44.example,30 days,LCHEN,5000,TX84102692
+C0045,Pioneer Logistics Ltd,"45 Market St, Brockway, 46215",US,555-6556,accounts@pioneer45.example,Net 30,JSMITH,50000,TX15249793
+C0046,Granite Retail LLC,"247 King St, Brockway, 65561",US,555-9737,accounts@granite46.example,COD,LCHEN,5000,TX26427292
+C0047,Eagle Trading Ltd,"103 Main Rd, North Haverbrook, 44750",US,555-3233,accounts@eagle47.example,Net 30,AKHAN,25000,TX99207053
+C0048,Blue Packaging Pty Ltd,"15 Church St, Ogdenville, 69777",US,555-2878,accounts@blue48.example,Net 60,AKHAN,25000,12345674
+C0049,Orchid Hardware LLC,"178 Queen St, Ogdenville, 23346",US,555-9442,accounts@orchid49.example,60 days,LCHEN,5000,TX94096874
+C0050,Eagle Logistics Pty Ltd,"160 Mill Lane, North Haverbrook, 86725",US,555-1576,accounts@eagle50.example,Net 30,LCHEN,5000,TX24939375
+C0051,Blue Industries Pty Ltd,"97 Church St, Shelbyville, 70603",US,555-8964,accounts@blue51.example,Net 30,LCHEN,25000,TX76595261
+C0052,Falcon Distribution Co,"97 Mill Lane, Ogdenville, 88477",US,555-6412,accounts@falcon52.example,60 days,LCHEN,5000,TX24071521
+C0053,Harbor Trading Ltd,"17 High St, Shelbyville, 88541",US,555-9673,accounts at example,60 days,LCHEN,5000,TX10769718
+C0054,Juniper Industries Ltd,"40 High St, Capital City, 32782",US,555-5697,accounts@juniper54.example,Cash on delivery,JSMITH,5000,TX86521633
+C0055,Unity Packaging Ltd,"201 Mill Lane, North Haverbrook, 12349",US,555-2317,accounts@unity55.example,Net 30,JSMITH,10000,TX54922553
+C0056,Falcon Engineering Co,"201 Bridge Rd, Springfield, 31497",US,555-8663,accounts@falcon56.example,Cash on delivery,AKHAN,50000,TX69502370
+C0057,Willow Foods Co,"243 Station St, Riverside, 21634",US,555-1174,accounts@willow57.example,N30,AKHAN,50000,TX50268638
+C0058,Lumen Retail Pty Ltd,"123 Queen St, Capital City, 15247",US,555-7207,accounts@lumen58.example,Net 30,AKHAN,50000,TX39220605
+C0059,Willow Industries Co,"59 Station St, Shelbyville, 79761",US,555-2921,accounts@willow59.example,30 days,JSMITH,5000,TX38187949
+C0060,Unity Distribution LLC,"131 Queen St, Shelbyville, 18640",US,555-6933,accounts@unity60.example,30 days,AKHAN,25000,TX71093839
+C0061,Titan Distribution Co,"15 Station St, Capital City, 23979",US,555-7421,accounts@titan61.example,60 days,JSMITH,100000,TX70388180
+C0062,Summit Distribution LLC,"200 Park Ave, North Haverbrook, 54644",US,555-1125,accounts@summit62.example,30 days,John Smith,25000,TX24561806
+C0063,Orchid Industries LLC,"47 Bridge Rd, Springfield, 78936",US,555-1682,accounts@orchid63.example,Net 30,AKHAN,25000,TX77696481
+C0064,Unity Trading Co,"174 Church St, Brockway, 68684",US,555-1923,accounts@unity64.example,30 days,JSMITH,100000,TX93187270
+C0065,River Engineering Co,"199 Market St, Riverside, 78855",US,555-8188,accounts@river65.example,Cash on delivery,AKHAN,50000,TX78041722
+C0066,Delta Logistics Inc,"106 High St, Brockway, 90711",US,555-9061,accounts@delta66.example,Net 60,LCHEN,25000,TX63695034
+C0067,Blue Trading Ltd,"14 High St, Riverside, 67388",United States,555-4221,accounts@blue67.example,Net 60,LCHEN,25000,TX22830199
+C0068,Nova Retail Ltd,"102 Bridge Rd, Shelbyville, 95898",US,555-2346,accounts@nova68.example,30 days,LCHEN,25000,TX60825732
+C0069,Juniper Engineering Ltd,"156 Main Rd, Ogdenville, 64072",US,555-6387,accounts@juniper69.example,N30,LCHEN,50000,TX53829133
+C0070,Iron Foods Limited,"54 King St, Capital City, 65634",US,555-3340,accounts@iron70.example,30 days,LCHEN,10000,TX37839217
+C0071,Vertex Packaging Limited,"32 Park Ave, Brockway, 98540",US,555-2577,accounts@vertex71.example,COD,AKHAN,50000,TX34135654
+C0072,Zenith Distribution Ltd,"168 High St, Riverside, 31348",US,555-4399,accounts@zenith72.example,30 days,JSMITH,25000,TX36251997
+C0073,Delta Engineering Limited,"156 Mill Lane, Capital City, 16057",US,555-4817,accounts@delta73.example,COD,JSMITH,50000,TX55066609
+C0074,The Very Long Company Name That Is Over Fifty Characters Pty Ltd,"50 Bridge Rd, Ogdenville, 45226",US,555-6316,accounts@zenith74.example,30 days,JSMITH,100000,TX16582733
+C0075,Harbor Distribution LLC,"248 Bridge Rd, Riverside, 79822",US,555-4981,accounts@harbor75.example,COD,JSMITH,25000,TX91662849
+C0076,Vertex Distribution Limited,"7 Church St, Brockway, 53923",US,555-6460,accounts@vertex76.example,Net 60,AKHAN,25000,TX21165935
+C0077,Eagle Industries Pty Ltd,"242 High St, North Haverbrook, 31589",US,555-3271,accounts@eagle77.example,Net 30,AKHAN,100000,TX77657331
+C0078,Maple Foods Pty Ltd,"113 Queen St, Brockway, 81961",US,555-2767,accounts@maple78.example,Net 30,LCHEN,5000,TX81055778
+C0079,River Packaging Pty Ltd,"95 Mill Lane, Fairview, 19488",US,555-3715,accounts@river79.example,COD,AKHAN,10000,TX51578155
+C0080,Zenith Industries Limited,"205 Mill Lane, Shelbyville, 19317",US,555-8162,accounts@zenith80.example,Cash on delivery,JSMITH,50000,TX78719730
+C0081,Quartz Supplies Ltd,"216 Park Ave, Fairview, 78300",US,555-6876,accounts@quartz81.example,30 days,JSMITH,25000,TX67047125
+C0082,Lumen Packaging Pty Ltd,"44 Main Rd, Riverside, 75341",US,555-5611,accounts@lumen82.example,Cash on delivery,JSMITH,25000,TX77850216
+C0083,Quartz Packaging Inc,"60 Main Rd, Capital City, 20799",US,555-7505,accounts@quartz83.example,30 days,AKHAN,50000,TX62428493
+C0084,Zenith Foods Ltd,"136 Station St, Riverside, 60934",US,555-7688,accounts@zenith84.example,Net 60,JSMITH,5000,TX91490549
+C0085,Quartz Hardware Ltd,"5 Bridge Rd, Brockway, 30013",US,555-7222,accounts@quartz85.example,N30,JSMITH,50000,TX74993376
+C0086,Eagle Foods LLC,"143 King St, North Haverbrook, 69520",US,555-2748,accounts@eagle86.example,Net 30,AKHAN,25000,TX84105215
+C0087,Eagle Hardware Limited,"131 Queen St, Brockway, 20990",US,555-6954,accounts@eagle87.example,60 days,LCHEN,100000,TX83598316
+C0088,Juniper Logistics Inc,"242 King St, North Haverbrook, 20994",US,555-1194,accounts@juniper88.example,Net 30,LCHEN,100000,TX63690448
+C0089,Kestrel Hardware Co,"165 Church St, Riverside, 99643",US,555-4050,accounts@kestrel89.example,Net 30,AKHAN,1500000,TX56464336
+C0090,Kestrel Supplies Pty Ltd,"152 Park Ave, Brockway, 29594",US,555-9072,accounts@kestrel90.example,30 days,JSMITH,100000,TX52416372
+C0091,Blue Distribution Ltd,"243 Main Rd, North Haverbrook, 77134",US,555-9544,accounts@blue91.example,Cash on delivery,AKHAN,50000,TX35247531
+C0092,Nova Packaging Co,"157 Main Rd, Springfield, 42692",US,555-7194,accounts@nova92.example,30 days,AKHAN,5000,TX22136409
+C0093,River Retail Pty Ltd,"154 King St, Capital City, 92018",US,555-5330,accounts@river93.example,30 days,AKHAN,25000,TX25741439
+C0094,Acme Supplies Co,"234 Church St, North Haverbrook, 39592",US,555-8849,accounts@acme94.example,Net 30,AKHAN,25000,TX46196785
+C0095,Vertex Foods Co,"216 Main Rd, Fairview, 43030",US,555-7188,accounts@vertex95.example,N30,LCHEN,10000,TX37285566
+C0096,Harbor Supplies Pty Ltd,"236 Main Rd, Shelbyville, 15089",US,555-3380,accounts@harbor96.example,Net 30,JSMITH,5000,TX21311580
+C0097,Summit Packaging Inc,"138 Mill Lane, Brockway, 54073",US,555-6723,accounts@summit97.example,Net 60,LCHEN,100000,TX67204380
+C0098,Vertex Supplies LLC,"245 Park Ave, Ogdenville, 71749",US,555-5392,accounts@vertex98.example,Net 30,LCHEN,25000,TX99758904
+C0099,Eagle Engineering LLC,"184 Park Ave, Springfield, 17870",US,555-8891,accounts@eagle99.example,Net 30,JSMITH,10000,TX95920017
+C0100,Lumen Engineering Pty Ltd,"217 Church St, Fairview, 64990",US,555-1628,accounts@lumen100.example,COD,JSMITH,25000,TX83275267
+C0101,Granite Industries LLC,"195 Queen St, Fairview, 75567",US,555-9096,accounts@granite101.example,N30,AKHAN,100000,TX14542724
+C0102,Unity Supplies Limited,"51 Market St, Shelbyville, 53107",US,555-5516,accounts@unity102.example,Cash on delivery,LCHEN,10000,TX33026561
+C0103,Vertex Industries LLC,"10 Main Rd, Shelbyville, 12139",US,555-6665,accounts@vertex103.example,N30,JSMITH,5000,TX17858650
+C0104,Cedar Distribution LLC,"53 King St, North Haverbrook, 23363",US,555-1041,accounts@cedar104.example,Net 30,AKHAN,25000,TX96653133
+C0105,Falcon Foods Inc,"94 Church St, Ogdenville, 47447",US,555-9124,accounts@falcon105.example,60 days,AKHAN,10000,TX54296967
+C0106,River Trading Inc,"175 High St, Ogdenville, 89684",US,555-5024,accounts@river106.example,Net 30,JSMITH,50000,TX58220896
+C0107,Lumen Hardware LLC,"108 Bridge Rd, Springfield, 70636",US,555-2267,accounts@lumen107.example,60 days,JSMITH,50000,TX21636793
+C0108,Cedar Industries Co,"184 Main Rd, Shelbyville, 28212",US,555-1372,accounts@cedar108.example,Net 30,LCHEN,100000,TX26198652
+C0109,Lumen Distribution Co,"229 Market St, Riverside, 30074",US,555-9200,accounts@lumen109.example,Cash on delivery,JSMITH,50000,TX87111759
+C0110,Cedar Logistics Pty Ltd,"46 Market St, Shelbyville, 70694",US,555-9610,accounts@cedar110.example,Cash on delivery,LCHEN,50000,TX29673118
+C0111,Cedar Trading Co,"66 Main Rd, Shelbyville, 82997",US,555-1082,accounts@cedar111.example,COD,LCHEN,10000,TX74308659
+C0112,Willow Packaging Ltd,"204 Church St, Brockway, 56512",US,555-2228,accounts@willow112.example,Net 60,LCHEN,25000,TX54687886
+C0113,Titan Packaging LLC,"56 King St, Riverside, 57783",US,555-9169,accounts@titan113.example,30 days,AKHAN,50000,TX86909208
+C0114,Titan Foods Limited,"211 Queen St, North Haverbrook, 41608",US,555-6667,accounts@titan114.example,30 days,JSMITH,5000,TX62104669
+C0115,Maple Packaging Limited,"45 High St, Capital City, 53377",US,555-7296,accounts@maple115.example,30 days,LCHEN,10000,TX70996575
+C0116,Falcon Logistics Pty Ltd,"99 Bridge Rd, Brockway, 26425",US,555-9805,accounts@falcon116.example,30 days,LCHEN,100000,TX94620709
+C0117,Pioneer Retail Limited,"147 Market St, Brockway, 78809",US,555-9154,accounts@pioneer117.example,N30,AKHAN,10000,TX10112739
+C0118,Unity Hardware Inc,"72 Park Ave, Springfield, 80887",US,555-8319,accounts@unity118.example,N30,JSMITH,5000,TX28124370
+C0119,Acme Industries Inc,"190 Mill Lane, Shelbyville, 24280",US,555-9277,accounts@acme119.example,Net 60,LCHEN,50000,TX95059373
+C0120,Quartz Distribution LLC,"223 Church St, Capital City, 94491",US,555-4620,accounts@quartz120.example,Net 30,JSMITH,10000,TX11279575
+,Granite Supplies Pty Ltd,"159 Church St, Shelbyville, 81629",US,555-7269,accounts@granite121.example,Net 30,AKHAN,50000,TX33506160
+C0122,Orchid Trading Limited,"238 Church St, Springfield, 66972",US,555-9667,accounts@orchid122.example,COD,AKHAN,10000,TX25446699
+C0123,Iron Supplies Co,"182 Park Ave, Springfield, 66674",US,555-1027,accounts@iron123.example,60 days,AKHAN,25000,TX60453374
+C0124,Pioneer Hardware Ltd,"22 Park Ave, North Haverbrook, 67754",US,555-4972,accounts@pioneer124.example,N30,AKHAN,10000,TX35054229
+C0125,Quartz Trading Co,"25 Market St, Shelbyville, 30491",US,555-4337,accounts@quartz125.example,30 days,AKHAN,100000,TX87444733
+C0126,Pioneer Engineering LLC,"216 Mill Lane, Fairview, 39034",US,555-9442,accounts@pioneer126.example,COD,LCHEN,50000,TX44874400
+C0127,Willow Distribution Pty Ltd,"214 Bridge Rd, Brockway, 92413",US,555-8810,accounts@willow127.example,Net 30,JSMITH,100000,TX75328619
+C0128,Harbor Foods Pty Ltd,"189 Church St, Ogdenville, 45414",US,555-4149,accounts@harbor128.example,30 days,LCHEN,25000,TX68879550
+C0129,Eagle Supplies Ltd,"125 Queen St, Shelbyville, 12184",US,555-7597,accounts@eagle129.example,Net 30,JSMITH,5000,TX24334267
+C0130,Zenith Retail Limited,"14 Queen St, Riverside, 62501",US,555-7238,accounts@zenith130.example,N30,LCHEN,100000,TX62602613
+C0131,Delta Hardware Ltd,"123 Church St, Capital City, 52389",US,555-3918,accounts@delta131.example,60 days,LCHEN,100000,TX18856229
+C0132,Falcon Hardware Co,"58 Church St, Capital City, 96575",US,555-4511,accounts@falcon132.example,N30,AKHAN,5000,TX99688489
+C0133,Quartz Industries Inc,"123 Park Ave, Ogdenville, 61957",US,555-8185,accounts@quartz133.example,Net 30,JSMITH,10000,TX80974976
+C0134,Cedar Retail Co,"136 Bridge Rd, Shelbyville, 84636",US,555-8364,accounts@cedar134.example,Cash on delivery,AKHAN,5000,TX57696534
+C0135,Orchid Foods LLC,"107 Church St, Fairview, 21680",US,555-8172,accounts@orchid135.example,30 days,AKHAN,10000,TX41130205
+C0136,Willow Hardware Pty Ltd,"85 King St, Riverside, 21253",US,555-5207,accounts@willow136.example,Cash on delivery,JSMITH,25000,TX16060983
+C0137,Kestrel Trading Limited,"82 Park Ave, Fairview, 21547",US,555-9364,accounts@kestrel137.example,N30,LCHEN,25000,TX66867741
+C0138,Vertex Logistics Co,"34 Queen St, Ogdenville, 40860",US,555-5673,accounts@vertex138.example,Net 30,JSMITH,50000,TX18755527
+C0139,Harbor Packaging LLC,"155 King St, Ogdenville, 33937",US,555-9915,accounts@harbor139.example,Cash on delivery,AKHAN,5000,TX81170287
+C0140,Blue Retail Inc,"189 Station St, Fairview, 90253",US,555-5242,accounts@blue140.example,Net 60,LCHEN,25000,TX71633357
+C0141,Blue Supplies Pty Ltd,"140 Main Rd, Springfield, 93670",US,555-4955,accounts@blue141.example,Cash on delivery,AKHAN,50000,TX72613082
+C0142,Acme Hardware Limited,"71 Main Rd, Fairview, 95475",US,555-7277,accounts@acme142.example,Net 30,LCHEN,100000,TX85370996
+C0143,Zenith Hardware Limited,"65 Station St, Fairview, 73033",US,555-4458,accounts@zenith143.example,30 days,JSMITH,100000,TX11189687
+C0144,Willow Supplies Pty Ltd,"127 Market St, Riverside, 86299",US,555-4848,accounts@willow144.example,Net 30,AKHAN,100000,TX38591387
+C0145,Cedar Packaging Inc,"63 Queen St, Fairview, 41276",US,555-5495,accounts@cedar145.example,Net 30,AKHAN,5000,TX79358320
+C0146,Falcon Industries Inc,"195 Queen St, Shelbyville, 97803",US,555-3592,accounts@falcon146.example,30 days,LCHEN,50000,TX96816716
+C0147,Blue Engineering Inc,"6 Bridge Rd, Ogdenville, 91727",US,555-4588,accounts@blue147.example,COD,JSMITH,10000,TX71810189
+C0148,Orchid Supplies Pty Ltd,"136 Station St, Brockway, 36485",US,555-6376,accounts@orchid148.example,N30,JSMITH,10000,TX24737959
+C0149,Iron Trading Limited,"73 Main Rd, North Haverbrook, 91430",US,555-9659,accounts@iron149.example,N30,LCHEN,10000,TX80966865
+C0150,Pioneer Trading Pty Ltd,"92 Queen St, Springfield, 97630",US,555-1104,accounts@pioneer150.example,60 days,JSMITH,5000,TX33458252
+C0151,Titan Logistics LLC,"163 Mill Lane, Shelbyville, 97452",US,555-1669,accounts@titan151.example,Net 30,AKHAN,50000,TX93306184
+C0152,Titan Industries Pty Ltd,"91 High St, North Haverbrook, 53303",US,555-9629,accounts@titan152.example,30 days,AKHAN,5000,TX64688740
+C0153,Nova Distribution Co,"232 High St, Springfield, 97114",US,555-7205,accounts@nova153.example,Net 30,JSMITH,10000,TX73018130
+C0154,Delta Foods Inc,"231 Bridge Rd, Capital City, 51068",US,555-1439,accounts@delta154.example,Cash on delivery,LCHEN,5000,TX72067697
+C0155,Granite Logistics Co,"67 Bridge Rd, Springfield, 15996",US,555-3585,accounts@granite155.example,Net 30,LCHEN,10000,TX33088834
+C0156,Harbor Engineering Pty Ltd,"119 Bridge Rd, Ogdenville, 46867",US,555-9834,accounts@harbor156.example,Cash on delivery,JSMITH,25000,TX31917869
+C0157,Willow Engineering Inc,"244 Station St, Fairview, 43011",US,555-2635,accounts@willow157.example,Cash on delivery,AKHAN,25000,TX75765161
+C0158,Harbor Logistics Ltd,"46 King St, Ogdenville, 96742",US,555-5326,accounts@harbor158.example,N30,AKHAN,10000,TX57419053
+C0159,Quartz Foods Inc,"170 Mill Lane, Fairview, 86257",US,555-3917,accounts@quartz159.example,Net 30,AKHAN,10000,TX72216741
+C0160,Eagle Distribution LLC,"63 Bridge Rd, Shelbyville, 29636",US,555-7624,accounts@eagle160.example,Net 60,JSMITH,5000,TX69020424
+C0161,Unity Industries Inc,"1 Mill Lane, Fairview, 24036",US,555-9355,accounts@unity161.example,Net 60,LCHEN,10000,TX59287944
+C0162,Kestrel Industries Limited,"223 Queen St, Ogdenville, 27424",US,555-7520,accounts@kestrel162.example,N30,AKHAN,100000,TX82687363
+C0163,Orchid Logistics Pty Ltd,"238 King St, Brockway, 44166",US,555-5996,accounts@orchid163.example,Cash on delivery,LCHEN,10000,TX87693332
+C0164,Titan Supplies Ltd,"96 Main Rd, Ogdenville, 92339",US,555-4215,accounts@titan164.example,60 days,JSMITH,50000,TX62061465
+C0165,Iron Hardware LLC,"61 Mill Lane, Ogdenville, 91838",US,555-9670,accounts@iron165.example,Net 30,LCHEN,10000,TX95113329
+C0166,Eagle Retail Limited,"62 Main Rd, Riverside, 76459",US,555-8921,accounts@eagle166.example,30 days,AKHAN,5000,TX72219831
+C0167,Blue Logistics Co,"8 King St, Shelbyville, 93739",US,555-3777,accounts@blue167.example,Net 30,AKHAN,25000,TX54614038
+C0168,Iron Retail Inc,"104 Station St, Capital City, 63277",US,555-7615,accounts@iron168.example,Net 30,JSMITH,100000,TX77771314
+C0169,Unity Logistics Ltd,"243 Main Rd, Springfield, 28801",US,555-2361,accounts@unity169.example,Net 30,LCHEN,5000,TX35814154
+C0170,Harbor Industries Pty Ltd,"246 High St, Springfield, 32692",US,555-6950,accounts@harbor170.example,N30,LCHEN,25000,TX64804224
+C0171,Pioneer Distribution Co,"53 Park Ave, Capital City, 81285",US,555-7417,accounts@pioneer171.example,Net 30,AKHAN,5000,TX12051353
+C0172,Iron Distribution Co,"19 Market St, Shelbyville, 96718",US,555-4416,accounts@iron172.example,Net 30,JSMITH,25000,TX33259095
+C0173,Juniper Packaging Inc,"39 Queen St, North Haverbrook, 55350",US,555-4288,accounts@juniper173.example,60 days,JSMITH,100000,TX40542378
+C0174,Acme Foods Co,"44 Queen St, Fairview, 43276",US,555-9162,accounts@acme174.example,COD,LCHEN,100000,TX41119657
+C0175,Summit Trading Inc,"39 Queen St, Brockway, 65375",US,555-8639,accounts@summit175.example,Net 30,LCHEN,5000,TX96442136
+C0176,Juniper Foods Pty Ltd,"171 Bridge Rd, Capital City, 15182",US,555-2519,accounts@juniper176.example,Cash on delivery,JSMITH,100000,TX60326683
+C0177,Quartz Engineering LLC,"110 High St, Springfield, 18725",US,555-9762,accounts@quartz177.example,Net 60,AKHAN,10000,TX66011152
+C0178,Juniper Hardware LLC,"99 Bridge Rd, Fairview, 61206",US,555-5712,accounts@juniper178.example,30 days,JSMITH,25000,TX58314037
+C0179,Titan Trading Co,"146 Bridge Rd, Shelbyville, 38377",US,555-1625,accounts@titan179.example,Net 30,AKHAN,100000,TX23462159
+C0180,Orchid Packaging Ltd,"151 King St, Shelbyville, 33951",US,555-3354,accounts@orchid180.example,60 days,LCHEN,50000,TX23885054
+C0181,Vertex Retail Pty Ltd,"72 King St, Riverside, 51181",US,555-9387,accounts@vertex181.example,30 days,AKHAN,50000,TX23263572
+C0182,Titan Retail Ltd,"3 Park Ave, Riverside, 92770",US,555-7841,accounts@titan182.example,Net 60,LCHEN,50000,TX38018041
+C0183,Acme Packaging Pty Ltd,"30 Station St, Springfield, 12254",US,555-7100,accounts@acme183.example,Net 30,JSMITH,100000,TX59477064
+C0184,Kestrel Logistics Limited,"104 King St, Capital City, 89136",US,555-5881,accounts@kestrel184.example,60 days,JSMITH,25000,TX24007521
+C0185,Summit Supplies LLC,"164 Main Rd, Springfield, 94737",US,555-4286,accounts@summit185.example,N30,LCHEN,100000,TX62641036
+C0186,Zenith Supplies LLC,"140 Mill Lane, Springfield, 75014",US,555-1311,accounts@zenith186.example,Net 30,LCHEN,100000,TX70812667
+C0187,Quartz Retail Co,"90 Bridge Rd, Ogdenville, 12441",US,555-3067,accounts@quartz187.example,60 days,JSMITH,25000,TX61090059
+C0188,Juniper Retail Ltd,"59 Station St, Brockway, 38319",US,555-8858,accounts@juniper188.example,Net 60,AKHAN,50000,TX30584908
+C0189,Cedar Foods Pty Ltd,"153 Bridge Rd, Capital City, 53577",US,555-5546,accounts@cedar189.example,30 days,LCHEN,100000,TX39735392
+C0190,Blue Hardware Pty Ltd,"18 Main Rd, Fairview, 68062",US,555-1177,accounts@blue190.example,Net 60,AKHAN,5000,TX76298856
+C0191,Juniper Distribution LLC,"175 Market St, Fairview, 17321",US,555-1719,accounts@juniper191.example,N30,AKHAN,50000,TX40135453
+C0192,Cedar Supplies Co,"6 Queen St, Capital City, 62243",US,555-3393,accounts@cedar192.example,COD,LCHEN,100000,TX39102471
+C0193,Summit Foods Inc,"240 Park Ave, Riverside, 94971",US,555-6299,accounts@summit193.example,Cash on delivery,JSMITH,5000,TX81907133
+C0194,Pioneer Supplies Co,"124 King St, North Haverbrook, 93267",US,555-8753,accounts@pioneer194.example,COD,JSMITH,10000,TX84502625
+C0195,Granite Hardware Pty Ltd,"87 High St, North Haverbrook, 48584",US,555-8022,accounts@granite195.example,30 days,AKHAN,5000,TX79854005
+C0196,Blue Foods Limited,"221 Market St, Riverside, 83188",US,555-7418,accounts@blue196.example,N30,LCHEN,10000,TX66405616
+C0197,Summit Hardware Limited,"231 High St, North Haverbrook, 18792",US,555-5040,accounts@summit197.example,Net 60,AKHAN,25000,TX61881116
+C0198,Maple Retail Limited,"3 Main Rd, Capital City, 55213",US,555-2514,accounts@maple198.example,Cash on delivery,LCHEN,25000,TX71945352
+C0199,Kestrel Retail Pty Ltd,"159 Queen St, North Haverbrook, 34739",US,555-7003,accounts@kestrel199.example,30 days,LCHEN,5000,TX77397729
+C0200,Titan Hardware Ltd,"104 Mill Lane, Ogdenville, 34527",US,555-9586,accounts@titan200.example,30 days,LCHEN,5000,TX23476417

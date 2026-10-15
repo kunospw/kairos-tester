@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
-import { accountForRole, isAllowedUrl, type AgentProfile } from "@/lib/agent-profile";
+import { accountForRole, isAllowedUrl, isRequestAllowed, type AgentProfile } from "@/lib/agent-profile";
 import type { AgentAction, CheckRecord } from "@/lib/agent-protocol";
 import type { LiveInputEvent } from "@/server/services/live-control";
 
@@ -34,6 +34,13 @@ export class Session {
   /** Overlay buttons to click away; cleared for cases that test those overlays (e.g. tours). */
   autoDismiss: string[] = [];
   private startedAt = new Date().toISOString();
+  /** True only while signing in, so a read-only environment still lets the login request through. */
+  private signingIn = false;
+  /** Change requests the read-only guard stopped since the AI last looked ("POST /Jobs/CreateJourney"). */
+  private blocked: string[] = [];
+  /** Everything native browser pop-ups (alert, confirm, prompt) said during this case. They are not part of the page, so the AI cannot see them otherwise. */
+  private dialogLog: string[] = [];
+  private newDialogs: string[] = [];
   /** Receives JPEG frames of the page as it changes (live view). Set before open(). */
   onFrame: ((jpeg: Buffer) => void) | null = null;
 
@@ -52,16 +59,26 @@ export class Session {
 
   async open() {
     this.context = await this.browser.newContext({ viewport: { width: 1366, height: 900 } });
-    // Hard guard: block every request to another origin (except the app's own assets).
-    const origin = new URL(this.profile.baseUrl).origin;
+    // Hard guard on every request: the application's own origin, plus (if the environment lists them) its API
+    // hosts. In read-only mode nothing that changes data gets through, whatever the AI clicks.
     await this.context.route("**/*", (route) => {
-      const u = route.request().url();
-      if (u.startsWith(origin) || u.startsWith("data:") || u.startsWith("blob:")) return route.continue();
+      const req = route.request();
+      if (isRequestAllowed(this.profile, req.url(), req.method(), { signingIn: this.signingIn })) return route.continue();
+      if (this.profile.readOnly && this.profile.allowedHosts.some((h) => new URL(req.url()).hostname.toLowerCase() === h)) {
+        this.blocked.push(`${req.method()} ${new URL(req.url()).pathname}`);
+      }
       return route.abort();
     });
     this.startedAt = new Date(Date.now() - 1000).toISOString();
     this.page = await this.context.newPage();
     this.page.setDefaultTimeout(15_000);
+    // A pop-up would otherwise be dismissed unseen. Record what it said, then close it (cancelling a confirm is the safe answer).
+    this.page.on("dialog", (d) => {
+      const msg = `${d.type()}: ${d.message()}`.slice(0, 300);
+      this.dialogLog.push(msg);
+      this.newDialogs.push(msg);
+      d.dismiss().catch(() => {});
+    });
     await this.startScreencast();
   }
 
@@ -109,6 +126,20 @@ export class Session {
     }
   }
 
+  /** Pop-ups that appeared since the last call (and clears the list). */
+  takeDialogs(): string[] {
+    const d = [...this.newDialogs];
+    this.newDialogs = [];
+    return d;
+  }
+
+  /** The change requests blocked in read-only mode since the last call (and clears the list). */
+  takeBlocked(): string[] {
+    const b = [...new Set(this.blocked)];
+    this.blocked = [];
+    return b;
+  }
+
   async close() {
     await this.context?.close().catch(() => {});
   }
@@ -144,6 +175,7 @@ export class Session {
       this.signedIn = true;
       return "This application needs no sign-in.";
     }
+    if (si.method === "password") return this.signInWithPassword(si);
     const since = new Date().toISOString();
     await this.page.goto(new URL(si.loginPath, this.profile.baseUrl).toString());
     await this.settle();
@@ -158,6 +190,33 @@ export class Session {
     this.signedIn = true;
     this.actingAs = null;
     return `Signed in as ${si.email} (code read from the local code file). Now on ${this.path()}.`;
+  }
+
+  /** Username + password sign-in. The values come from this process's environment, never from the database or the AI. */
+  private async signInWithPassword(si: Extract<AgentProfile["signIn"], { method: "password" }>): Promise<string> {
+    const username = process.env[si.usernameEnv]?.trim();
+    const password = process.env[si.passwordEnv];
+    if (!username || !password) {
+      throw new Error(`The test account is not set up: add ${si.usernameEnv} and ${si.passwordEnv} to the runner's .env and restart the runner.`);
+    }
+    this.signingIn = true;
+    try {
+      await this.page.goto(new URL(si.loginPath, this.profile.baseUrl).toString());
+      await this.settle();
+      const field = (name: string) => this.page.getByLabel(name, { exact: false }).or(this.page.getByPlaceholder(name, { exact: false })).first();
+      await field(si.usernameField).fill(username);
+      await field(si.passwordField).fill(password);
+      await this.page.getByRole("button", { name: si.submitButton }).click();
+      await this.page.waitForURL((u) => !u.pathname.startsWith(si.loginPath), { timeout: 20_000 }).catch(() => {
+        throw new Error("Sign-in did not complete: the test account may be wrong, locked or the application is not reachable.");
+      });
+      await this.settle();
+    } finally {
+      this.signingIn = false;
+    }
+    this.signedIn = true;
+    this.actingAs = null;
+    return `Signed in with the test account. Now on ${this.path()}.`;
   }
 
   /** The newest sign-in code the app wrote to its local code file since this case started. */
@@ -267,7 +326,7 @@ export class Session {
     const scopes = (await dialog.count()) ? [dialog, this.page] : [this.page];
     for (const scope of scopes) {
       for (const exact of [true, false]) {
-        const l = scope.getByRole(r, { name, exact });
+        const l = scope.getByRole(r, { name, exact }).filter({ visible: true });
         if ((await l.count()) > nth) return l.nth(nth);
       }
     }
@@ -290,6 +349,10 @@ export class Session {
       }
       case "click": {
         const target = await this.resolve(a.role, a.name, a.nth);
+        // Found in the page but not showing (typically inside a collapsed menu): say so now instead of waiting out a 15 s timeout.
+        if (!(await target.isVisible().catch(() => false)) && (await this.page.getByRole(a.role as Parameters<Page["getByRole"]>[0], { name: a.name }).count()) > 0) {
+          return `"${a.name}" is in the page but hidden right now (for example inside a collapsed menu or another panel). Open its menu or panel first, or use goto for an address you have already seen.`;
+        }
         if (DESTRUCTIVE_CONTROL.test(a.name)) {
           const hit = await this.protectedTarget(target);
           if (hit) return `REFUSED: "${a.name}" would affect "${hit}", which is protected. Create a scratch item (for example a new demo project) and use that instead, or finish BLOCKED.`;
@@ -297,6 +360,20 @@ export class Session {
         await target.click();
         await this.settle();
         return `Clicked ${a.role} "${a.name}". Now on ${this.path()}.`;
+      }
+      case "click_text": {
+        // For clickable tiles, cards and rows that are not buttons or links: click the visible element showing this text.
+        const matches = this.page.getByText(a.text, { exact: false }).filter({ visible: true });
+        const n = await matches.count();
+        if (n === 0) return `No visible element shows "${a.text}". Use a shorter or different label from the snapshot.`;
+        const target = matches.nth(Math.min(a.nth ?? 0, n - 1));
+        if (DESTRUCTIVE_CONTROL.test(a.text)) {
+          const hit = await this.protectedTarget(target);
+          if (hit) return `REFUSED: "${a.text}" would affect "${hit}", which is protected. Create a scratch item and use that instead, or finish BLOCKED.`;
+        }
+        await target.click();
+        await this.settle();
+        return `Clicked the element showing "${a.text}"${n > 1 ? ` (${n} matched; used #${Math.min(a.nth ?? 0, n - 1)})` : ""}. Now on ${this.path()}.`;
       }
       case "fill": {
         const prot = this.profile.protectedNames.find((n) => n.toLowerCase() === a.value.trim().toLowerCase());
@@ -348,7 +425,8 @@ export class Session {
         const inFields = await this.page
           .locator("input:visible, textarea:visible, select:visible")
           .evaluateAll((els, t) => els.filter((e) => ((e as HTMLInputElement).value ?? "").toLowerCase().includes(t)).length, needle);
-        const n = inText + inFields;
+        const inDialog = this.dialogLog.filter((m) => m.toLowerCase().includes(needle)).length;
+        const n = inText + inFields + inDialog;
         return a.kind === "text_visible" ? rec(n > 0, n > 0 ? `found "${a.text}"` : `"${a.text}" not found`) : rec(n === 0, n === 0 ? `"${a.text}" absent` : `"${a.text}" is visible`);
       }
       case "url_contains": {

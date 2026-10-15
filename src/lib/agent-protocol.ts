@@ -11,6 +11,7 @@ export const agentActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("act_as"), role: str.min(1) }),
   z.object({ type: z.literal("goto"), path: str.min(1) }),
   z.object({ type: z.literal("click"), role: str.min(1), name: str.min(1), nth: z.number().int().min(0).optional() }),
+  z.object({ type: z.literal("click_text"), text: str.min(1).max(120), nth: z.number().int().min(0).optional() }),
   z.object({ type: z.literal("fill"), role: str.default("textbox"), name: str.min(1), value: z.string() }),
   z.object({ type: z.literal("select"), name: str.min(1), option: str.min(1) }),
   z.object({ type: z.literal("press"), key: str.min(1) }),

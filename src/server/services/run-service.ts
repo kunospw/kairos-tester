@@ -159,10 +159,11 @@ export async function planRun(db: Db, applicationId: string, input: z.infer<type
     reachableEnvironments: profile?.caseEnvironments ?? [],
     disposable: env.disposable,
     codesWithoutInbox: profile?.signIn.method === "email_code_outbox",
+    readOnly: profile?.readOnly ?? false,
   };
-  const planOne = (externalId: string, v: { title: string; environment: string | null; preconditions: string | null; stepsText: string | null; expectedResult: string | null }) =>
+  const planOne = (externalId: string, v: { title: string; environment: string | null; preconditions: string | null; stepsText: string | null; expectedResult: string | null; testData?: string | null }) =>
     profile
-      ? planCase({ externalId, title: v.title, environment: v.environment, preconditions: v.preconditions, stepsText: v.stepsText, expectedResult: v.expectedResult }, ctx)
+      ? planCase({ externalId, title: v.title, environment: v.environment, preconditions: v.preconditions, stepsText: v.stepsText, expectedResult: v.expectedResult, testData: v.testData }, ctx)
       : { plan: "NEEDS_HUMAN" as Plan, reason: "This environment is not set up for the AI runner yet." };
 
   if (input.scope.mode === "continue_cycle") {

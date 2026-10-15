@@ -22,6 +22,7 @@ function describe(a: AgentAction): string {
     case "act_as": return `Switching to role: ${a.role}`;
     case "goto": return `Opening ${a.path}`;
     case "click": return `Clicking ${a.name}`;
+    case "click_text": return `Clicking "${a.text}"`;
     case "fill": return `Typing into ${a.name}`;
     case "select": return `Choosing ${a.option}`;
     case "press": return `Pressing ${a.key}`;
@@ -35,7 +36,7 @@ function describe(a: AgentAction): string {
   }
 }
 
-function systemPrompt(baseUrl: string) {
+function systemPrompt(baseUrl: string, readOnly = false) {
   return `You are a careful QA tester executing one written test case in a real web browser.
 Reply with ONE JSON object only: {"thought": "<one short sentence>", "action": {...}}.
 
@@ -45,6 +46,7 @@ Actions:
 - {"type":"read_sign_in_code","email":"<optional>"}  get the newest one-time sign-in code the app sent (use this instead of asking a person for codes).
 - {"type":"goto","path":"/some/path"}
 - {"type":"click","role":"button|link|tab|checkbox|menuitem|...","name":"<accessible name from the snapshot>","nth":0}
+- {"type":"click_text","text":"<short visible label>","nth":0}  click a tile, card or row that is NOT a button or link in the snapshot. Use a SHORT label (a heading), never a whole sentence.
 - {"type":"fill","role":"textbox","name":"<label>","value":"<text>"}
 - {"type":"select","name":"<combobox label>","option":"<visible option text>"}
 - {"type":"press","key":"Enter|Escape|ArrowRight|..."}
@@ -70,6 +72,8 @@ Rules:
 - You have a limited number of actions. Once you have checked the expected result, finish; do not keep exploring.
 - Navigate by clicking links, tabs and buttons you see in the snapshot. Only use goto for an address you have already seen in this app. A "Not found" page after a goto you guessed is YOUR mistake, not an application failure: go back and navigate by clicking.
 - If a case deletes, archives or removes something (or says "use a scratch …"), first create a new scratch item (e.g. Admin → Create a demo project, named "QA scratch …") and act only on that.
+${readOnly ? `- READ-ONLY ENVIRONMENT: this is a shared system and the runner blocks every request that would change data. Look, open, filter and read only. Never create, save, assign, approve, reject, cancel, convert, delete or edit anything. If a step needs a change, finish BLOCKED and say so. If the runner reports it blocked a change request, the error on the page is NOT an application failure.\n` : ""}- If a click is reported hidden or times out, the control is probably inside a collapsed menu or another panel: open the menu button first, or use goto for an address you have already seen. Never repeat the same click.
+- A text check matches the text of ONE element. Do not check a whole card or row as one long sentence when its words sit in separate elements: check one short heading or label per check. If a check fails only because of how you phrased it, rephrase it once, then move on.
 - When a step says "it" or "the …", it means the specific item named in the preconditions. Never act on a different item instead, especially when removing, archiving or deleting. If that item does not exist, finish BLOCKED and say so.`;
 }
 
@@ -366,7 +370,7 @@ Next action?`;
         const res = await untilInterrupted(
           ollamaChat(
             [
-              { role: "system", content: systemPrompt(profile.baseUrl) },
+              { role: "system", content: systemPrompt(profile.baseUrl, profile.readOnly) },
               { role: "user", content: user },
             ],
             { json: true, timeoutMs: 90_000 },
@@ -387,7 +391,8 @@ Next action?`;
         continue;
       }
       const a = reply.action;
-      const sig = JSON.stringify({ ...a, ...(a.type === "check" ? { description: "" } : {}) });
+      // The page matters: clicking "Home" from five different pages is navigation, not a loop.
+      const sig = JSON.stringify({ ...a, ...(a.type === "check" ? { description: "" } : {}), at: session.signedIn ? session.path() : "" });
       // Loops are often not back-to-back (e.g. goto A, check, goto A, check…): count repeats among recent actions.
       recentSigs.push(sig);
       if (recentSigs.length > 10) recentSigs.shift();
@@ -450,6 +455,10 @@ Next action?`;
         if (a.type === "finish") throw e; // could not record the result: stop this case
         result = `ERROR: ${String((e as Error).message).split("\n")[0].slice(0, 200)}`;
       }
+      const dialogs = session.takeDialogs();
+      if (dialogs.length) result += ` NOTE: a browser pop-up appeared and was closed. It said: ${dialogs.map((d) => `"${d}"`).join("; ")}. A text check for its wording will now find it.`;
+      const blocked = session.takeBlocked();
+      if (blocked.length) result += ` NOTE: the read-only guard blocked a change request (${blocked.join(", ")}). Any error on the page is caused by that, not by the application. If this step needs the change, finish BLOCKED.`;
       await session.pushFrame();
       await finishStep(db, stepId, result, a.type === "check" ? (checks[checks.length - 1]?.passed ?? false) : !failedResult(result));
       history.push(`#${turn} ${JSON.stringify(a)} -> ${result}`);

@@ -10,6 +10,8 @@ export interface PlanInput {
   preconditions: string | null;
   stepsText: string | null;
   expectedResult: string | null;
+  /** The case's "Test data" note. A line saying the case changes data marks it as not for read-only runs. */
+  testData?: string | null;
 }
 
 export interface PlanContext {
@@ -18,6 +20,8 @@ export interface PlanContext {
   disposable: boolean;
   /** Sign-in codes can be read without a real inbox (email_code_outbox profile). */
   codesWithoutInbox: boolean;
+  /** Look-only environment (a shared system): cases that change data are not run. */
+  readOnly?: boolean;
 }
 
 const HUMAN_ONLY: [RegExp, string][] = [
@@ -29,6 +33,9 @@ const HUMAN_ONLY: [RegExp, string][] = [
   [/\bdevtools|console\b/i, "needs crafted requests from the browser console"],
   [/\b(restart|redeploy|reboot)\b|\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\s*=/, "needs the application restarted or its configuration changed"],
 ];
+
+/** Case authors mark data-changing cases in the Test data column ("Creates or changes data in the shared UAT."). */
+const CHANGES_DATA = /\b(creates?|changes?|deletes?|removes?) (or \w+ )?data\b|\bshared UAT\b|cannot be undone/i;
 
 const DESTRUCTIVE = /\b(delete|deletes|deleted|archive|archived|purge|remove|removes|reset|test load|load \(test\)|wipe)\b/i;
 
@@ -42,6 +49,9 @@ export function planCase(c: PlanInput, ctx: PlanContext): { plan: Plan; reason: 
   }
   if (!ctx.codesWithoutInbox && /\bcode (from|in) the email\b/i.test(text)) {
     return { plan: "NEEDS_HUMAN", reason: "This case needs a sign-in code from a real inbox." };
+  }
+  if (ctx.readOnly && c.testData && CHANGES_DATA.test(c.testData)) {
+    return { plan: "NOT_ALLOWED", reason: "Changes data, and this environment is read-only." };
   }
   if (DESTRUCTIVE.test(text) && !ctx.disposable) {
     return { plan: "NOT_ALLOWED", reason: "Creates or deletes data, and this environment is not marked as disposable." };

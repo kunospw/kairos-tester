@@ -71,8 +71,8 @@ Reply with ONE JSON object only:
  "matchRule":{"titlePattern":"<regex>","sectionPattern":"<regex, optional>","externalIdPattern":"<regex, optional>"},
  "steps":[...],"successChecks":[...]}
 
-Allowed step objects (nothing else): {"type":"act_as","role"} {"type":"goto","path"} {"type":"click","role","name","nth"} {"type":"fill","role","name","value"} {"type":"select","name","option"} {"type":"press","key"} {"type":"upload","file","name"} {"type":"wait","seconds"} {"type":"screenshot","caption"}.
-successChecks: objects {"type":"check","kind":"text_visible|text_absent|url_contains|element_visible|element_absent|element_disabled|element_enabled","text","role","name","description"}. Every check object MUST include a "description" string saying what it proves. They must prove the flow really worked.
+Allowed step objects (nothing else): {"type":"act_as","role"} {"type":"goto","path"} {"type":"click","role","name","nth"} {"type":"click_text","text","nth"} {"type":"fill","role","name","value"} {"type":"select","name","option"} {"type":"press","key"} {"type":"upload","file","name"} {"type":"wait","seconds"} {"type":"screenshot","caption"}.
+successChecks: objects {"type":"check","kind":"text_visible|text_absent|url_contains|element_visible|element_absent|element_disabled|element_enabled","text","role","name","description"}. Every check object MUST include a "description" string saying what it proves. Use at most 8 checks: prove the flow worked, do not re-verify every detail or every column. They must prove the flow really worked.
 Rules:
 - Match by patterns so ONE recipe covers a family of cases (e.g. every upload case), not just this one id.
 - Use roles/names exactly as seen in the actions log. Only files from the approved list. Only paths inside the application.

@@ -18,8 +18,13 @@ export function AgentSetupForm({
   const router = useRouter();
   const p = env.profile;
   const [baseUrl, setBaseUrl] = useState(p?.baseUrl ?? env.targetUrl ?? "http://localhost:3000");
-  const [signInMethod, setSignInMethod] = useState<"email_code_outbox" | "none">(p?.signIn.method ?? "email_code_outbox");
+  const [signInMethod, setSignInMethod] = useState<"email_code_outbox" | "password" | "none">(p?.signIn.method ?? "email_code_outbox");
   const si = p?.signIn.method === "email_code_outbox" ? p.signIn : null;
+  const pw = p?.signIn.method === "password" ? p.signIn : null;
+  const [usernameEnv, setUsernameEnv] = useState(pw?.usernameEnv ?? "KT_APP_USER");
+  const [passwordEnv, setPasswordEnv] = useState(pw?.passwordEnv ?? "KT_APP_PASSWORD");
+  const [allowedHosts, setAllowedHosts] = useState((p?.allowedHosts ?? []).join("\n"));
+  const [readOnly, setReadOnly] = useState(p?.readOnly ?? false);
   const [email, setEmail] = useState(si?.email ?? "");
   const [outboxPath, setOutboxPath] = useState(si?.outboxPath ?? "");
   const [useViewAs, setUseViewAs] = useState(p ? p.roleSwitch.method === "view_as" : true);
@@ -54,7 +59,11 @@ export function AgentSetupForm({
       signIn:
         signInMethod === "none"
           ? { method: "none" }
-          : { ...(p?.signIn.method === "email_code_outbox" ? p.signIn : {}), method: "email_code_outbox", email, outboxPath },
+          : signInMethod === "password"
+            ? { ...(p?.signIn.method === "password" ? p.signIn : {}), method: "password", usernameEnv: usernameEnv.trim(), passwordEnv: passwordEnv.trim() }
+            : { ...(p?.signIn.method === "email_code_outbox" ? p.signIn : {}), method: "email_code_outbox", email, outboxPath },
+      allowedHosts: lines(allowedHosts).map((h) => h.toLowerCase()),
+      readOnly,
       roleSwitch: useViewAs ? { ...(p?.roleSwitch.method === "view_as" ? p.roleSwitch : {}), method: "view_as" } : { method: "none" },
       roleAccounts,
       caseEnvironments: caseEnvs.split(",").map((s) => s.trim()).filter(Boolean),
@@ -91,7 +100,20 @@ export function AgentSetupForm({
       <fieldset className="rounded border border-slate-200 p-3">
         <legend className="px-1 text-xs font-semibold text-slate-600">Signing in</legend>
         <label className="flex items-center gap-2"><input type="radio" checked={signInMethod === "email_code_outbox"} onChange={() => setSignInMethod("email_code_outbox")} /> Email + one-time code, read from the app&apos;s local code file</label>
+        <label className="flex items-center gap-2"><input type="radio" checked={signInMethod === "password"} onChange={() => setSignInMethod("password")} /> Username + password of a test account (kept in the runner&apos;s .env, never saved here)</label>
         <label className="flex items-center gap-2"><input type="radio" checked={signInMethod === "none"} onChange={() => setSignInMethod("none")} /> No sign-in needed</label>
+        {signInMethod === "password" && (
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <div>
+              <input className="input font-mono text-xs" value={usernameEnv} onChange={(e) => setUsernameEnv(e.target.value)} placeholder="KT_APP_USER" required aria-label="Name of the variable holding the username" />
+              <p className="mt-1 text-xs text-slate-500">Name of the .env variable with the username. Must start with KT_.</p>
+            </div>
+            <div>
+              <input className="input font-mono text-xs" value={passwordEnv} onChange={(e) => setPasswordEnv(e.target.value)} placeholder="KT_APP_PASSWORD" required aria-label="Name of the variable holding the password" />
+              <p className="mt-1 text-xs text-slate-500">Name of the .env variable with the password. Put the real values in the runner&apos;s .env file, then restart the runner.</p>
+            </div>
+          </div>
+        )}
         {signInMethod === "email_code_outbox" && (
           <div className="mt-2 grid gap-3 md:grid-cols-2">
             <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Sign in as (email)" required aria-label="Sign-in email" />
@@ -117,6 +139,16 @@ export function AgentSetupForm({
           <p className="mt-1 text-xs text-slate-500">Leave empty if no test case uploads files.</p>
         </div>
       </div>
+      <fieldset className="rounded border border-slate-200 p-3">
+        <legend className="px-1 text-xs font-semibold text-slate-600">Shared backend</legend>
+        <label className="label" htmlFor={`as-hosts-${env.id}`}>Other hosts the page may call (one per line)</label>
+        <textarea id={`as-hosts-${env.id}`} className="input font-mono text-xs" rows={2} value={allowedHosts} onChange={(e) => setAllowedHosts(e.target.value)} placeholder="api.example.com" />
+        <p className="mt-1 text-xs text-slate-500">Plain host names, https only. The AI still can only open the application address above; this only lets that page reach its own backend.</p>
+        <label className="mt-2 flex items-start gap-2">
+          <input type="checkbox" className="mt-0.5" checked={readOnly} onChange={(e) => setReadOnly(e.target.checked)} />
+          <span><strong>Look only (read-only)</strong>: the runner blocks every request that would change data on those hosts, and skips cases marked as changing data. Use this for shared systems.</span>
+        </label>
+      </fieldset>
       <div>
         <label className="label" htmlFor={`as-notes-${env.id}`}>Notes for the AI (optional)</label>
         <textarea id={`as-notes-${env.id}`} className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Test data, file locations, quirks…" />
