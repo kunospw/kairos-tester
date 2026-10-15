@@ -2,7 +2,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { testDb, resetDb, importRows, sampleRows } from "./helpers";
 import { createCycle } from "@/server/services/cycle-service";
-import { setControl, queueInput, activateTakeover, takePendingInputs, takeoverState, endTakeover, liveInputSchema } from "@/server/services/live-control";
+import { setControl, queueInput, activateTakeover, takePendingInputs, takeoverState, endTakeover, liveInputSchema, interruptPending, takeCommands, markPaused, controlState, clearControl, recordStep } from "@/server/services/live-control";
 
 const db = testDb();
 afterAll(() => db.$disconnect());
@@ -67,5 +67,49 @@ describe("live takeover", () => {
 
   it("cannot reach an item of another run", async () => {
     await expect(setControl(db, appId, "not-this-run", { itemId, action: "take" }, "dyah")).rejects.toThrow(/not found/);
+  });
+
+  it("pause is requested by a person and becomes real only when the runner reaches a checkpoint", async () => {
+    expect(await interruptPending(db, itemId)).toBe(false);
+    await setControl(db, appId, runId, { itemId, action: "pause" }, "dyah");
+    expect((await controlState(db, itemId)).pause).toBe("REQUESTED");
+    expect(await interruptPending(db, itemId)).toBe(true);
+    await markPaused(db, itemId);
+    expect((await controlState(db, itemId)).pause).toBe("PAUSED");
+    await setControl(db, appId, runId, { itemId, action: "resume" }, "dyah");
+    expect((await controlState(db, itemId)).pause).toBe("NONE");
+    const steps = await db.agentStep.findMany({ where: { runItemId: itemId }, orderBy: { createdAt: "asc" } });
+    expect(steps.map((s) => s.label)).toEqual(["dyah paused the AI", "dyah let the AI carry on"]);
+  });
+
+  it("a message reaches the AI once and its step shows it was read", async () => {
+    await expect(setControl(db, appId, runId, { itemId, action: "message", text: "  " }, "dyah")).rejects.toThrow(/Type a message/);
+    await setControl(db, appId, runId, { itemId, action: "message", text: "Use the Acme customer" }, "dyah");
+    expect(await interruptPending(db, itemId)).toBe(true);
+    expect(await takeCommands(db, itemId)).toEqual([{ kind: "MESSAGE", text: "Use the Acme customer", by: "dyah" }]);
+    expect(await takeCommands(db, itemId)).toEqual([]);
+    expect(await interruptPending(db, itemId)).toBe(false);
+    const step = await db.agentStep.findFirstOrThrow({ where: { runItemId: itemId } });
+    expect(step).toMatchObject({ kind: "PERSON", label: "dyah: Use the Acme customer", result: "The AI read this.", ok: true });
+  });
+
+  it("stopping a case wakes a paused AI so it can hand the case over", async () => {
+    await setControl(db, appId, runId, { itemId, action: "pause" }, "dyah");
+    await markPaused(db, itemId);
+    await setControl(db, appId, runId, { itemId, action: "stop_case", text: "Wrong data" }, "dyah");
+    expect((await controlState(db, itemId)).pause).toBe("NONE");
+    expect(await takeCommands(db, itemId)).toEqual([{ kind: "STOP", text: "Wrong data", by: "dyah" }]);
+  });
+
+  it("controls only apply to a case the AI is running, and are cleared when it ends", async () => {
+    await recordStep(db, itemId, { kind: "AI", label: "Open /login", thought: "Start at sign-in" });
+    await setControl(db, appId, runId, { itemId, action: "message", text: "hello" }, "dyah");
+    await setControl(db, appId, runId, { itemId, action: "pause" }, "dyah");
+    await clearControl(db, itemId);
+    expect(await interruptPending(db, itemId)).toBe(false);
+    await db.runItem.update({ where: { id: itemId }, data: { status: "DONE" } });
+    for (const action of ["pause", "message", "stop_case"] as const) {
+      await expect(setControl(db, appId, runId, { itemId, action, text: "x" }, "dyah")).rejects.toThrow(/not running/);
+    }
   });
 });

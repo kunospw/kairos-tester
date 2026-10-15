@@ -9,7 +9,7 @@ import { parseProfile } from "@/lib/agent-profile";
 import { addEvidence } from "@/server/services/evidence-service";
 import { askAndWait, finishAgentAttempt, failItem, openAgentAttempt, parkItem, previousAnswers, progress, publishFrame, waitForPrerequisites, type ClaimedItem } from "@/server/services/run-service";
 import { ACTIONS_PREFIX, pickRecipe } from "@/lib/recipes";
-import { activateTakeover, endTakeover, takePendingInputs, takeoverState } from "@/server/services/live-control";
+import { activateTakeover, clearControl, controlState, endTakeover, finishStep, interruptPending, markPaused, recordStep, takeCommands, takePendingInputs, takeoverState } from "@/server/services/live-control";
 import { Session } from "./browser";
 
 const MAX_TURNS = Number(process.env.RUNNER_MAX_ACTIONS || 30);
@@ -151,6 +151,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     humanTouched = true;
     await activateTakeover(db, item.id);
     await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${ext}: a person took over the browser.` } });
+    await recordStep(db, item.id, { kind: "SYSTEM", label: "The AI paused and handed over the browser" });
     const until = Date.now() + MAX_TAKEOVER_MS;
     while (Date.now() < until) {
       if ((await takeoverState(db, item.id)) !== "ACTIVE") break;
@@ -166,7 +167,101 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     history.push("A person drove the browser for a while and gave it back. The page may be different now; look at the snapshot before acting.");
     partialNote = partialNote ?? "A person used the browser during this case, so the AI result needs a person's confirmation.";
     await progress(db, item.id, "The AI has the browser back", item.runId);
+    await recordStep(db, item.id, { kind: "SYSTEM", label: "The AI has the browser back" });
   };
+
+  // ---- interrupts from the person watching (pause, message, stop, take control)
+  const guidance: string[] = [];
+  let stopBy: { by: string; text: string | null } | null = null;
+  const MAX_PAUSE_MS = 30 * 60_000;
+
+  /**
+   * Everything a person can do to a running case is handled here, between actions:
+   * messages join the AI's instructions, Stop ends the case, Take control hands the
+   * browser over, and Pause waits until Resume.
+   */
+  const checkpoint = async (): Promise<"go" | "stop"> => {
+    let pausedAt: number | null = null;
+    for (;;) {
+      for (const c of await takeCommands(db, item.id)) {
+        if (c.kind === "STOP") stopBy = { by: c.by, text: c.text };
+        else if (c.text) {
+          guidance.push(`${c.by}: ${c.text}`);
+          history.push(`The person watching (${c.by}) told you: "${c.text}"`);
+          log(`${ext}: message from ${c.by}: ${c.text}`);
+        }
+      }
+      if (stopBy) return "stop";
+      const st = await controlState(db, item.id);
+      if (st.takeover === "REQUESTED") {
+        await letPersonDrive();
+        continue;
+      }
+      if (st.pause === "REQUESTED") {
+        await markPaused(db, item.id);
+        await recordStep(db, item.id, { kind: "SYSTEM", label: "The AI is paused" });
+        await session.pushFrame();
+        log(`${ext}: paused by a person.`);
+        pausedAt = Date.now();
+        continue;
+      }
+      if (st.pause === "PAUSED") {
+        pausedAt ??= Date.now();
+        if (Date.now() - pausedAt > MAX_PAUSE_MS) {
+          stopBy = { by: "the runner", text: "it stayed paused for more than 30 minutes" };
+          return "stop";
+        }
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+      if (pausedAt !== null) {
+        history.push("A person paused you for a while and then let you carry on. Look at the page before acting.");
+        await progress(db, item.id, "Carrying on", item.runId);
+      }
+      return "go";
+    }
+  };
+
+  /** A person stopped the case: hand it to them in Needs you with everything done so far. */
+  const finishStopped = async () => {
+    const who = stopBy ?? { by: "a person", text: null };
+    await shoot("Where the case was stopped").catch(() => {});
+    const done = checks.length ? ` Checks it ran: ${checks.map((c) => `${c.passed ? "✓" : "✕"} ${c.description}`).join("; ")}.` : "";
+    await finishAgentAttempt(db, item, attempt.id, {
+      verdict: "BLOCKED",
+      summary: `Stopped by ${who.by}${who.text ? `: ${who.text}` : ""}.${done}`,
+      confidence: 0,
+      checks,
+      steps: stepRecords,
+      screenshots: shots,
+      partialNote,
+      humanTouched: true,
+      why: `Stopped by ${who.by}${who.text ? `: ${who.text}` : ""}. Check what the AI did and decide.`,
+    });
+    await recordStep(db, item.id, { kind: "SYSTEM", label: "Handed to a person", result: "It is in Needs you with what the AI did so far." });
+    log(`${ext}: stopped by ${who.by}.`);
+  };
+
+  const INTERRUPTED: unique symbol = Symbol("interrupted");
+  /** Wait for the model, but give way at once if a person wants something; the late reply is dropped. */
+  const untilInterrupted = async <T,>(p: Promise<T>): Promise<T | typeof INTERRUPTED> => {
+    let settled = false;
+    p.catch(() => {}); // a dropped call may still fail later
+    const watch = (async (): Promise<typeof INTERRUPTED> => {
+      while (!settled) {
+        await new Promise((r) => setTimeout(r, 700));
+        if (!settled && (await interruptPending(db, item.id).catch(() => false))) return INTERRUPTED;
+      }
+      return INTERRUPTED;
+    })();
+    try {
+      return await Promise.race([p, watch]);
+    } finally {
+      settled = true;
+    }
+  };
+
+  const failedResult = (r: string) => /^(ERROR|REFUSED|Refused|Unknown role|Not a browser action|CHECK FAILED)/.test(r);
 
   /** Run a reviewed recipe step (same browser guards as AI actions). Returns the outcome text. */
   const doStep = async (a: AgentAction): Promise<string> => {
@@ -189,8 +284,11 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
       try {
         if (!session.signedIn && recipe.steps[0]?.type !== "act_as") await session.actAs(v.role ?? "Any");
         for (const [i, step] of recipe.steps.entries()) {
+          if ((await checkpoint()) === "stop") return finishStopped();
           await progress(db, item.id, `Recipe "${recipe.name}": ${describe(step)}`, item.runId);
+          const sid = await recordStep(db, item.id, { kind: "RECIPE", label: `Recipe "${recipe.name}": ${describe(step)}` });
           const r = await doStep(step);
+          await finishStep(db, sid, r, !failedResult(r));
           history.push(`recipe ${i + 1}/${recipe.steps.length} ${JSON.stringify(step)} -> ${r}`);
           await session.pushFrame();
           if (/^(REFUSED|Refused|Unknown role|Not a browser action)/.test(r)) {
@@ -227,7 +325,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     }
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
-      if ((await takeoverState(db, item.id)) === "REQUESTED") await letPersonDrive();
+      if ((await checkpoint()) === "stop") return finishStopped();
       const snapshot = await session.snapshot();
       const left = MAX_TURNS - turn;
       const checksSoFar = checks.map((c) => `${c.passed ? "PASSED" : "FAILED"}: ${c.description}`).join("\n");
@@ -250,7 +348,7 @@ ${profile.notes ? `\nNotes about this application:\n${profile.notes}\n` : ""}
 Roles you can act as: ${Object.keys(profile.roleAccounts).join(", ") || "(only the signed-in account)"}
 Protected (never delete, archive or remove; the runner refuses): ${profile.protectedNames.join(", ") || "none"}
 Approved test files for upload: ${uploadable.join(", ") || "none"}
-${answersText ? `\nAnswers the person already gave for this case:\n${answersText}\n` : ""}
+${answersText ? `\nAnswers the person already gave for this case:\n${answersText}\n` : ""}${guidance.length ? `\nInstructions from the person watching this run (follow them; the safety rules and protected names still apply):\n${guidance.join("\n")}\n` : ""}
 Action ${turn + 1} of ${MAX_TURNS}.
 Checks so far: ${checksSoFar ? "\n" + checksSoFar : "none"}
 Steps confirmed: ${stepsSoFar || "none"}
@@ -265,13 +363,20 @@ ${session.signedIn ? snapshot : "(open the app with act_as or sign_in first)"}
 Next action?`;
       let reply;
       try {
-        const res = await ollamaChat(
-          [
-            { role: "system", content: systemPrompt(profile.baseUrl) },
-            { role: "user", content: user },
-          ],
-          { json: true, timeoutMs: 90_000 },
+        const res = await untilInterrupted(
+          ollamaChat(
+            [
+              { role: "system", content: systemPrompt(profile.baseUrl) },
+              { role: "user", content: user },
+            ],
+            { json: true, timeoutMs: 90_000 },
+          ),
         );
+        if (res === INTERRUPTED) {
+          // A person stepped in while the AI was thinking: drop this reply and handle them first.
+          turn--;
+          continue;
+        }
         reply = agentReplySchema.parse(extractJson(res.content));
         invalid = 0;
       } catch (e) {
@@ -293,6 +398,7 @@ Next action?`;
       }
       await progress(db, item.id, describe(a), item.runId);
       log(`${ext} #${turn}: ${describe(a)}`);
+      const stepId = await recordStep(db, item.id, { kind: "AI", label: describe(a), thought: reply.thought || null });
 
       let result: string;
       try {
@@ -319,6 +425,7 @@ Next action?`;
             // Nobody answered yet: notify (it is in Needs you), park, and move on to work the
             // AI can do. Answering puts this case back in the queue and the AI revisits it.
             await shoot("Waiting for an answer").catch(() => {});
+            await finishStep(db, stepId, "No answer yet. The case waits in Needs you; the AI moves on and comes back once you answer.", null);
             await parkItem(db, item, attempt.id, a.question);
             log(`${ext}: asked a person "${a.question}"; moving on until they answer.`);
             return;
@@ -326,6 +433,7 @@ Next action?`;
           result = r.status === "answered" ? `The person answered: ${r.answer}` : "The person skipped this. Finish with BLOCKED if you cannot continue.";
         } else if (a.type === "finish") {
           if (shots === 0) await shoot("Final state");
+          await finishStep(db, stepId, `Verdict ${a.verdict}: ${a.summary}`, a.verdict === "PASS" ? true : a.verdict === "FAIL" ? false : null);
           await finishAgentAttempt(db, item, attempt.id, {
             verdict: a.verdict,
             summary: a.summary,
@@ -343,6 +451,7 @@ Next action?`;
         result = `ERROR: ${String((e as Error).message).split("\n")[0].slice(0, 200)}`;
       }
       await session.pushFrame();
+      await finishStep(db, stepId, result, a.type === "check" ? (checks[checks.length - 1]?.passed ?? false) : !failedResult(result));
       history.push(`#${turn} ${JSON.stringify(a)} -> ${result}`);
     }
     await finishStuck(`it used all ${MAX_TURNS} actions.`);
@@ -357,6 +466,7 @@ Next action?`;
         .catch(() => {});
     }
     clearInterval(frames);
+    await clearControl(db, item.id).catch(() => {});
     await session.close();
   }
 }

@@ -149,3 +149,31 @@ and published lists of generic "AI-generated UI" tells. The resulting rules are 
   AI revisits it, and a confirmed failure is kept as history before the re-test.
 - Migration `20261015130000_live_view_waiting`: `RunItemStatus.WAITING` and the live-frame
   columns on `RunnerStatus`.
+
+## 7. Watching and steering a run (implemented)
+
+Modelled on products that let people supervise a browser agent:
+[ChatGPT agent / Operator](https://bdtechtalks.substack.com/p/a-first-look-at-the-new-chatgpt-agent)
+(narration, interrupt to steer, take over, stop),
+[Skyvern](https://www.skyvern.com/docs/cloud/getting-started/monitor-a-run.md)
+(live stream beside a step log with the agent's reasoning, Take control),
+[Browser Use Cloud](https://docs.browser-use.com/cloud/browser/live-preview.md) (pause at a
+step boundary, resume, follow-up instructions),
+[Browserbase](https://docs.browserbase.com/features/session-live-view) and
+[Cloudflare Browser Run](https://developers.cloudflare.com/browser-run/features/human-in-the-loop/)
+(embedded live view, human hand-off with Done/Failed).
+
+- **Steps beside the live view** (`AgentStep`): every AI or recipe action with the AI's own
+  `thought`, its result and whether it worked; people's interventions are in the same trail.
+  The trail is kept and shown in Needs you ("What the AI did") for confirming results.
+- **Controls** (`POST /api/apps/:id/runs/:runId/control`): `take` / `give_back` (the
+  existing take-over), `pause` / `resume`, `message`, `stop_case`. Session-only.
+- **One checkpoint in the runner** handles them between actions. While the AI waits for the
+  model, the runner polls for interrupts every 0.7 s and drops the pending reply, so a pause
+  or take-over doesn't wait for a slow model call (measured 1.4 s pause, 1.3 s take-over
+  against a 4 s model call).
+- Messages are added to the AI's prompt as instructions from the person watching; safety
+  rules and protected names still apply. Stop hands the case to Needs you with the reason.
+- The step log follows the running case; a person can pin another case and go back to live.
+- The case watchdog ignores time a person spends pausing or driving. A browser that dies
+  is restarted and the case re-queued once instead of failing the rest of the queue.

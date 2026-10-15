@@ -67,7 +67,12 @@ export async function inbox(db: Db, applicationId: string) {
         stepOutcomes: { orderBy: { stepIndex: "asc" } },
         evidence: { orderBy: { createdAt: "asc" } },
         cycleCase: { include: { testCase: true, cycle: true } },
-        runItems: { select: { requests: { where: { status: "OPEN", kind: "CONFIRM_RESULT" }, select: { id: true } } } },
+        runItems: {
+          select: {
+            requests: { where: { status: "OPEN", kind: "CONFIRM_RESULT" }, select: { id: true } },
+            steps: { orderBy: { createdAt: "asc" }, take: 120, select: { id: true, kind: true, label: true, thought: true, result: true, ok: true } },
+          },
+        },
       },
     }),
     db.aiProposal.findMany({

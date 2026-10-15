@@ -363,7 +363,8 @@ export async function startRun(db: Db, applicationId: string, input: z.infer<typ
 
 // ------------------------------------------------------------------ live view
 
-export async function runView(db: Db, applicationId: string, runId: string) {
+/** `focusItemId` pins the step log to one case; by default it follows the case running now. */
+export async function runView(db: Db, applicationId: string, runId: string, focusItemId?: string | null) {
   const run = await db.testRun.findFirst({
     where: { id: runId, cycle: { applicationId } },
     include: {
@@ -401,6 +402,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
       statusNote: it.statusNote,
       currentStep: it.currentStep,
       takeover: it.takeover,
+      pause: it.pause,
       lastShotId: it.lastShotId,
       result,
       proposed: a?.proposedOutcome ?? null,
@@ -411,6 +413,26 @@ export async function runView(db: Db, applicationId: string, runId: string) {
     };
   });
   const count = (f: (i: (typeof items)[number]) => boolean) => items.filter(f).length;
+  // The case shown in the step log: the one running now, else the one that ran last.
+  const focusRow =
+    (focusItemId ? run.items.find((i) => i.id === focusItemId) : undefined) ??
+    run.items.find((i) => i.status === "RUNNING") ??
+    [...run.items].filter((i) => i.startedAt).sort((a, b) => (b.startedAt?.getTime() ?? 0) - (a.startedAt?.getTime() ?? 0))[0] ??
+    null;
+  const focus = focusRow
+    ? {
+        itemId: focusRow.id,
+        steps: (await db.agentStep.findMany({ where: { runItemId: focusRow.id }, orderBy: { createdAt: "asc" }, take: 200 })).map((st) => ({
+          id: st.id,
+          kind: st.kind,
+          label: st.label,
+          thought: st.thought,
+          result: st.result,
+          ok: st.ok,
+          at: st.createdAt.toISOString(),
+        })),
+      }
+    : null;
   return {
     id: run.id,
     status: run.status,
@@ -432,6 +454,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
       done: count((i) => i.result !== null || (i.status === "SKIPPED" && i.openRequests.length === 0)),
     },
     items,
+    focus,
     events: run.events.map((e) => ({ at: e.createdAt.toISOString(), message: e.message })),
   };
 }
@@ -673,6 +696,8 @@ export interface AgentFinish {
   partialNote?: string | null;
   /** A person used the browser during this case: never record the result without them. */
   humanTouched?: boolean;
+  /** Why a person must confirm, shown in Needs you (defaults to "a person used the browser"). */
+  why?: string;
 }
 
 export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: string, f: AgentFinish) {
@@ -682,7 +707,7 @@ export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: s
   }
   const checksText = f.checks.map((c) => `${c.passed ? "✓" : "✕"} ${c.description} (${c.detail})`).join("\n");
   const setupDone = item.purpose === "SETUP" && f.verdict === "PASS" && f.checks.length > 0 && f.checks.every((c) => c.passed);
-  const decision = f.humanTouched && !setupDone ? ({ kind: "CONFIRM", proposed: f.verdict, why: "A person used the browser during this run, so please confirm the result." } as const) : setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
+  const decision = f.humanTouched && !setupDone ? ({ kind: "CONFIRM", proposed: f.verdict, why: f.why ?? "A person used the browser during this run, so please confirm the result." } as const) : setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
     verdict: f.verdict,
     confidence: f.confidence,
     checks: f.checks,

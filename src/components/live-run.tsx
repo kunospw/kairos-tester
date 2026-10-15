@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/client-api";
 import { FormError } from "@/components/form-error";
 import { AskCard } from "@/components/ask-card";
+import { AgentConsole } from "@/components/agent-console";
 import { OutcomeBadge, StatusBar } from "@/components/ui";
 import { IconChevronRight, IconNotRun, IconPause } from "@/components/icons";
 import type { runView } from "@/server/services/run-service";
@@ -54,21 +55,29 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
   const [busy, setBusy] = useState<"report" | "cancel" | null>(null);
   const [error, setError] = useState<unknown>(null);
 
+  // The step log follows the running case unless a person pins another one.
+  const [pinned, setPinned] = useState<string | null>(null);
+  const pinnedRef = useRef<string | null>(null);
+  pinnedRef.current = pinned;
   const refresh = async () => {
     try {
-      setV(await apiFetch<View>(`/api/apps/${appId}/runs/${v.id}`));
+      const q = pinnedRef.current ? `?focus=${encodeURIComponent(pinnedRef.current)}` : "";
+      setV(await apiFetch<View>(`/api/apps/${appId}/runs/${v.id}${q}`));
     } catch {
       /* keep the last view; the next poll retries */
     }
   };
+  const liveRun = v.status === "RUNNING";
   useEffect(() => {
-    const t = setInterval(refresh, 2500);
+    // Faster while the AI works, so the step log keeps up with the live browser.
+    const t = setInterval(refresh, liveRun ? 1500 : 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [liveRun]);
 
   const t = v.totals;
   const running = v.items.find((i) => i.status === "RUNNING") ?? null;
+  const focusItem = v.items.find((i) => i.id === v.focus?.itemId) ?? running;
   const asks = v.items.flatMap((i) => i.openRequests.map((r) => ({ item: i, req: r })));
   const waiting = v.items.filter((i) => i.status === "WAITING").length;
   const finished = v.status !== "RUNNING";
@@ -126,17 +135,38 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
       </div>
       <FormError error={error} />
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        <div className="min-w-0 space-y-8">
-          <section>
-            <p className="mb-2 text-sm text-ink-800">
-              <strong className="text-lg font-semibold tabular-nums">{t.done}</strong> <span className="text-slate-500">of {t.total} done</span>
-              {!finished && remaining > 0 && <span className="text-slate-500"> · {remaining} to go</span>}
-              {waiting > 0 && <span className="text-slate-500"> · {waiting} waiting on another case</span>}
-            </p>
-            <StatusBar pass={t.passed} fail={t.failed} blocked={t.blocked} notRun={t.total - t.passed - t.failed - t.blocked} />
-          </section>
+      <section className="mb-6">
+        <p className="mb-2 text-sm text-ink-800">
+          <strong className="text-lg font-semibold tabular-nums">{t.done}</strong> <span className="text-slate-500">of {t.total} done</span>
+          {!finished && remaining > 0 && <span className="text-slate-500"> · {remaining} to go</span>}
+          {waiting > 0 && <span className="text-slate-500"> · {waiting} waiting on another case</span>}
+        </p>
+        <StatusBar pass={t.passed} fail={t.failed} blocked={t.blocked} notRun={t.total - t.passed - t.failed - t.blocked} />
+      </section>
 
+      <div className="mb-8 grid gap-4 xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+        <AgentConsole
+          appId={appId}
+          runId={v.id}
+          item={focusItem}
+          steps={v.focus?.steps ?? []}
+          live={!finished}
+          following={!pinned}
+          onFollow={() => {
+            pinnedRef.current = null;
+            setPinned(null);
+            void refresh();
+          }}
+          onPin={(id) => {
+            pinnedRef.current = id;
+            setPinned(id);
+          }}
+          onRefresh={refresh}
+        />
+        <LiveView appId={appId} runId={v.id} live={!finished} runnerOnline={v.runnerOnline} running={running} onRefresh={refresh} />
+      </div>
+
+      <div className="max-w-3xl space-y-8">
           {asks.length > 0 && (
             <section>
               <h2 className="mb-1 text-sm font-semibold">Needs you <span className="font-normal text-slate-500">({asks.length})</span></h2>
@@ -184,6 +214,18 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
                         <Gallery images={it.evidence.filter((e) => e.mimeType.startsWith("image/"))} thumbClass="w-36" imgClass="h-20" />
                       )}
                       <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          className="text-xs text-accent-700 hover:underline"
+                          onClick={() => {
+                            pinnedRef.current = it.id;
+                            setPinned(it.id);
+                            void refresh();
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          Show its steps
+                        </button>
                         <Link className="text-xs text-accent-700 hover:underline" href={`/apps/${appId}/cycles/${it.cycleId}/run/${it.cycleCaseId}`}>Open the case result</Link>
                         {!["QUEUED", "RUNNING", "WAITING"].includes(it.status) && !(it.status === "DONE" && it.result === "PASS") && <RecipeDraftButton appId={appId} runItemId={it.id} />}
                       </div>
@@ -206,11 +248,6 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
               </ul>
             </details>
           )}
-        </div>
-
-        <aside className="xl:sticky xl:top-6 xl:self-start">
-          <LiveView appId={appId} runId={v.id} live={!finished} runnerOnline={v.runnerOnline} running={running} onRefresh={refresh} />
-        </aside>
       </div>
     </div>
   );

@@ -145,6 +145,34 @@ export default async function NeedsYouPage({ params }: { params: Promise<{ appId
                     </div>
                   </div>
 
+                  {(() => {
+                    const trail = a.runItems.flatMap((ri) => ri.steps);
+                    if (!trail.length) return null;
+                    return (
+                      <details className="border-t border-slate-200 px-4 py-2 text-sm">
+                        <summary className="cursor-pointer text-slate-600 hover:text-ink-900">What the AI did ({trail.length} steps)</summary>
+                        <ol className="mt-2 max-h-80 space-y-1.5 overflow-y-auto pb-1">
+                          {trail.map((st) => (
+                            <li key={st.id} className={st.kind === "PERSON" ? "ml-5 rounded bg-slate-100 px-2 py-1" : st.kind === "SYSTEM" ? "text-xs text-slate-500" : "flex gap-2"}>
+                              {st.kind === "AI" || st.kind === "RECIPE" ? (
+                                <>
+                                  <span className="mt-[3px] w-4 shrink-0">{st.ok === true ? <OutcomeIcon outcome="PASS" size={12} /> : st.ok === false ? <OutcomeIcon outcome="FAIL" size={12} /> : null}</span>
+                                  <span className="min-w-0">
+                                    <span className="block text-ink-900">{st.label}</span>
+                                    {st.thought && <span className="block text-xs text-slate-500">{st.thought}</span>}
+                                    {st.ok === false && st.result && <span className="block text-xs text-red-700">{st.result}</span>}
+                                  </span>
+                                </>
+                              ) : (
+                                st.label
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    );
+                  })()}
+
                   <footer className="space-y-3 border-t border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="flex flex-wrap items-center gap-x-2 text-sm">
                       {a.proposedOutcome ? (

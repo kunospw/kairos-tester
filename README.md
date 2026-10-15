@@ -167,9 +167,16 @@ The **AI runner** indicator at the bottom of the sidebar shows whether it is run
 
 While a run is going:
 
-* **Live view.** The run page shows the application under test beside the results,
-  streamed from the runner's browser (about once a second, only when the screen
-  changes). Set `RUNNER_HEADED=true` to also get a real browser window.
+* **Watch and step in.** The run page puts the AI's **steps** (each action, its
+  reasoning and whether it worked) beside a **live view** of the application, streamed
+  from the runner's browser. While it works you can:
+  * **Pause** and **Resume** the AI,
+  * **Tell the AI something** ("use the Acme customer"); it reads it before its next action,
+  * **Take control** of the browser and click/type yourself, then give it back,
+  * **Stop this case**, which hands it to you in Needs you with everything done so far.
+
+  Interrupts reach the AI within a second or two, even while it is waiting for the
+  model. Set `RUNNER_HEADED=true` to also get a real browser window.
 * **Nothing is skipped.** When the AI needs a person (a question, a failure to
   confirm, a case it can't do, a case it got stuck on) it waits briefly
   (`RUNNER_ASK_WAIT_MS`, default 15 s), then parks that case, adds it to **Needs you**
