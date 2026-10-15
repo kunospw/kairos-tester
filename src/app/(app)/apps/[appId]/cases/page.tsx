@@ -36,6 +36,7 @@ export default async function CasesPage({
     <>
       <a className="btn-secondary" href="/api/import/template">Download CSV template</a>
       <Link className="btn-secondary" href={`${base}/cases/import`}>Import XLSX / CSV</Link>
+      <Link className="btn-secondary" href={`${base}/context`}>✨ Draft with AI</Link>
       <Link className="btn-primary" href={`${base}/cases/new`}>+ New case</Link>
     </>
   );
@@ -45,7 +46,7 @@ export default async function CasesPage({
       <>
         <PageHeader title="Test cases" actions={actions} />
         <EmptyState title="No test cases yet" action={<Link className="btn-accent" href={`${base}/cases/import`}>Import a checklist</Link>}>
-          Import an XLSX/CSV checklist, create cases by hand, or draft them with AI from the Context &amp; AI tab.
+          Import an XLSX/CSV checklist, create cases by hand, or draft them with AI.
         </EmptyState>
       </>
     );

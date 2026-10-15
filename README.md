@@ -8,8 +8,9 @@ customer-friendly report snapshots. AI (Ollama Cloud) drafts cases, reviews resu
 and drafts summaries, but **only as proposals that a person accepts or rejects**.
 
 Kairos Tester is separate from the applications it tests. It stores cases, results,
-evidence and reports. It never contacts the application under test (for example
-KFastTrack), and automated execution is not connected in this version.
+evidence and reports. The web app never contacts the application under test (for
+example KFastTrack). AI test runs are executed by a separate local **AI runner**
+(`npm run runner`) that drives a browser against `localhost` only (see section 8).
 
 ---
 
@@ -117,8 +118,8 @@ alongside an application under test on the common port 3000.
 ## 7. First use: import the KFastTrack checklist
 
 1. **Applications → + New application** → `KFastTrack`.
-2. **App settings → Environments**: add `Demo` and `Cloud2` (optional target URLs;
-   they are only shown as links).
+2. **Setup → Environments**: add `Demo` and `Cloud2`. The Setup page shows a
+   checklist of what is still missing before the AI can run tests.
 3. **Test cases → Import XLSX / CSV**:
    * Destination: *A new historical cycle* (for example "Checklist v7 history", build
      left blank if unknown).
@@ -129,10 +130,12 @@ alongside an application under test on the common port 3000.
    * Optional: preview the **How to use** sheet and save it as *unreviewed*
      application context.
    * **Confirm import**. Everything is saved in one transaction.
-4. **Overview** shows counts computed from the imported records. The cached Summary
+4. **Results** shows counts computed from the imported records. The cached Summary
    sheet is ignored.
-5. **Cycles & execution → + New cycle** for the next build. Every case starts as
-   *Not run*; historical passes are not carried over.
+5. **▶ Run tests** for the next build: the AI runs what it can, and anything it
+   can't settle lands in **Needs you**. To record results by hand instead, use
+   **Results → All cycles → + New cycle**. Every case starts as *Not run*;
+   historical passes are not carried over.
 
 Expected checkpoint for Checklist‑7 (verified by the parser test against the
 real file): 123 cases, 18 sections, 73 Pass, 6 Fail, 4 Blocked, 40 Not run. If
@@ -150,7 +153,17 @@ OLLAMA_CHAT_URL="https://ollama.com/api/chat"
 OLLAMA_MODEL="deepseek-v4-pro:cloud"
 ```
 
-Restart the app, then go to **Settings & integrations → Test connection**. That
+Restart the app, then go to **Settings & integrations → Test connection**.
+
+To run tests with AI, teach it each environment under **Setup → AI setup per
+environment** (address, sign-in, roles, what it must never delete), then start the
+runner in a second terminal and leave it open:
+
+```powershell
+npm run runner
+```
+
+The **AI runner on/off** indicator next to the tabs shows whether it is running. That
 check calls the real provider and reports the model name, latency and whether it
 returned valid JSON. Each AI action first shows *exactly* what will be sent
 (selected text only, never attachments or credentials). The output is validated
@@ -259,7 +272,9 @@ src/components/         UI components
 tests/unit/             unit tests (no DB)
 tests/db/               integration tests (disposable test DB)
 scripts/                hash-password, smoke check
-docs/runner-interface.md  design for a future local Playwright runner (not implemented)
+runner/                 local AI runner (npm run runner): claims queued cases, drives the browser
+docs/redesign.md        architecture review and the low-friction redesign plan
+docs/runner-interface.md  earlier design for an HTTP runner API (superseded by runner/)
 docker-compose.yml      optional local PostgreSQL
 ```
 

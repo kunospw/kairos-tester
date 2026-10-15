@@ -78,7 +78,7 @@ export function CreateCycle({
                 <option value="">Not recorded</option>
                 {environments.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
-              {environments.length === 0 && <p className="mt-1 text-xs text-slate-500">Add environments under App settings.</p>}
+              {environments.length === 0 && <p className="mt-1 text-xs text-slate-500">Add environments under Setup.</p>}
             </div>
             <div>
               <span className="label">Type</span>

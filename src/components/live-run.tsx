@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/client-api";
 import { FormError } from "@/components/form-error";
+import { AskCard } from "@/components/ask-card";
 import type { runView } from "@/server/services/run-service";
 
 type View = Awaited<ReturnType<typeof runView>>;
 type Item = View["items"][number];
-type Req = Item["openRequests"][number];
 
 const OUTCOME_TEXT: Record<string, { label: string; cls: string; icon: string }> = {
   PASS: { label: "Passed", cls: "text-green-800 bg-green-50 ring-green-600/30", icon: "✓" },
@@ -130,7 +130,15 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
           <h2 className="mb-3 text-lg font-semibold text-amber-950">Needs you ({asks.length})</h2>
           <div className="space-y-3">
             {asks.map(({ item, req }) => (
-              <AskCard key={req.id} appId={appId} item={item} req={req} cycleId={v.cycle.id} onDone={refresh} />
+              <AskCard
+                key={req.id}
+                appId={appId}
+                req={req}
+                manualHref={`/apps/${appId}/cycles/${item.cycleId ?? v.cycle.id}/run/${item.cycleCaseId}`}
+                expected={item.expected}
+                shots={item.evidence.filter((e) => e.mimeType.startsWith("image/")).slice(-3)}
+                onDone={refresh}
+              />
             ))}
           </div>
         </section>
@@ -205,69 +213,6 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
           </ul>
         </details>
       )}
-    </div>
-  );
-}
-
-function AskCard({ appId, item, req, cycleId, onDone }: { appId: string; item: Item; req: Req; cycleId: string; onDone: () => void }) {
-  const [text, setText] = useState("");
-  const [error, setError] = useState<unknown>(null);
-  const [busy, setBusy] = useState(false);
-  const send = async (action: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await apiFetch(`/api/apps/${appId}/requests/${req.id}`, { method: "POST", json: { action, text: text || null } });
-      onDone();
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
-  };
-  const manualHref = `/apps/${appId}/cycles/${item.cycleId ?? cycleId}/run/${item.cycleCaseId}`;
-  const shots = item.evidence.filter((e) => e.mimeType.startsWith("image/")).slice(-3);
-
-  return (
-    <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-amber-200">
-      <p className="font-medium text-slate-900">{req.question}</p>
-      {req.kind !== "MANUAL_CASE" && req.detail && <p className="mt-1 text-sm text-slate-600">{req.detail}</p>}
-      {req.kind === "CONFIRM_RESULT" && item.expected && <p className="mt-1 text-sm text-slate-600"><strong>Expected:</strong> {item.expected}</p>}
-      {req.kind === "CONFIRM_RESULT" && shots.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {shots.map((e) => (
-            <a key={e.id} href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer" className="block w-44 overflow-hidden rounded border border-slate-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/evidence/${e.id}`} alt={e.caption ?? "screenshot"} className="h-28 w-full object-cover object-top" loading="lazy" />
-              <span className="block truncate px-1 text-xs text-slate-600">{e.caption}</span>
-            </a>
-          ))}
-        </div>
-      )}
-      <FormError error={error} />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {req.kind === "INPUT" && (
-          <>
-            <input className="input max-w-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder="Your answer" aria-label="Your answer" />
-            <button className="btn-primary" disabled={busy || !text} onClick={() => send("answer")}>Send</button>
-          </>
-        )}
-        {req.kind === "CONFIRM_RESULT" && (
-          <>
-            <button className="btn-primary" disabled={busy} onClick={() => send("confirm")}>Confirm</button>
-            <button className="btn-secondary" disabled={busy} onClick={() => send("override_pass")}>It actually passed</button>
-            <button className="btn-secondary" disabled={busy} onClick={() => send("override_fail")}>Fail</button>
-            <button className="btn-secondary" disabled={busy} onClick={() => send("override_blocked")}>Blocked</button>
-            <input className="input max-w-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder="Note (optional)" aria-label="Note" />
-          </>
-        )}
-        {req.kind === "RUN_ERROR" && (
-          <button className="btn-primary" disabled={busy} onClick={() => send("retry")}>Let the AI retry</button>
-        )}
-        {(req.kind === "MANUAL_CASE" || req.kind === "RUN_ERROR") && (
-          <Link className="btn-secondary" href={manualHref}>Do it myself</Link>
-        )}
-        <button className="btn-secondary" disabled={busy} onClick={() => send("skip")}>Skip</button>
-      </div>
     </div>
   );
 }

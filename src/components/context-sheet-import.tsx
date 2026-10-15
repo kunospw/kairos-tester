@@ -48,7 +48,7 @@ export function ContextSheetImport({ appId, file, sheets }: { appId: string; fil
       </p>
       <FormError error={error} />
       {saved !== null ? (
-        <Alert kind="success" title={`${saved} unreviewed context entries saved.`}>Review them under Context &amp; AI.</Alert>
+        <Alert kind="success" title={`${saved} unreviewed context entries saved.`}>Review them under Setup → knowledge &amp; AI drafting.</Alert>
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-2">

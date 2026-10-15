@@ -52,7 +52,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ appId
         subtitle={`Generated ${formatDateTime(proposal.createdAt)} by ${proposal.model} for ${proposal.requestedBy}${proposal.durationMs ? ` in ${(proposal.durationMs / 1000).toFixed(1)} s` : ""}`}
         actions={
           <>
-            <Link className="btn-secondary" href={`/apps/${appId}/context`}>← Context &amp; AI</Link>
+            <Link className="btn-secondary" href={`/apps/${appId}/context`}>← Knowledge &amp; AI drafting</Link>
             {proposal.reportId && <Link className="btn-secondary" href={`/apps/${appId}/reports/${proposal.reportId}`}>Open report</Link>}
           </>
         }

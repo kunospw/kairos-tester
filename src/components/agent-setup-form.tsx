@@ -30,6 +30,8 @@ export function AgentSetupForm({
   );
   const [caseEnvs, setCaseEnvs] = useState((p?.caseEnvironments ?? []).join(", "));
   const [notes, setNotes] = useState(p?.notes ?? "");
+  const [protectedNames, setProtectedNames] = useState((p?.protectedNames ?? []).join("\n"));
+  const [uploadDirs, setUploadDirs] = useState((p?.uploadDirs ?? []).join("\n"));
   const [disposable, setDisposable] = useState(env.disposable);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -43,12 +45,21 @@ export function AgentSetupForm({
       const m = line.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
       if (m) roleAccounts[m[1]] = /^\(?me\)?$/i.test(m[2]) ? null : m[2];
     }
+    const lines = (t: string) => t.split("\n").map((s) => s.trim()).filter(Boolean);
+    // Start from the saved profile so settings this form doesn't show (custom button
+    // labels, auto-dismiss buttons...) survive an edit.
     const agentProfile = {
+      ...p,
       baseUrl,
-      signIn: signInMethod === "none" ? { method: "none" } : { method: "email_code_outbox", email, outboxPath },
-      roleSwitch: useViewAs ? { method: "view_as" } : { method: "none" },
+      signIn:
+        signInMethod === "none"
+          ? { method: "none" }
+          : { ...(p?.signIn.method === "email_code_outbox" ? p.signIn : {}), method: "email_code_outbox", email, outboxPath },
+      roleSwitch: useViewAs ? { ...(p?.roleSwitch.method === "view_as" ? p.roleSwitch : {}), method: "view_as" } : { method: "none" },
       roleAccounts,
       caseEnvironments: caseEnvs.split(",").map((s) => s.trim()).filter(Boolean),
+      protectedNames: lines(protectedNames),
+      uploadDirs: lines(uploadDirs),
       notes,
     };
     try {
@@ -94,6 +105,18 @@ export function AgentSetupForm({
         <label className="label mt-2" htmlFor={`as-roles-${env.id}`}>Role → account (one per line; “(me)” = the signed-in account)</label>
         <textarea id={`as-roles-${env.id}`} className="input font-mono text-xs" rows={6} value={roles} onChange={(e) => setRoles(e.target.value)} placeholder={"K admin = (me)\nData owner = demo.arlead\nCustomer PM = demo.pm"} />
       </fieldset>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="label" htmlFor={`as-protected-${env.id}`}>Never delete, archive or remove (one per line)</label>
+          <textarea id={`as-protected-${env.id}`} className="input text-xs" rows={3} value={protectedNames} onChange={(e) => setProtectedNames(e.target.value)} placeholder={"Demo customer\nMain workspace"} />
+          <p className="mt-1 text-xs text-slate-500">Enforced by the runner, not just asked of the AI.</p>
+        </div>
+        <div>
+          <label className="label" htmlFor={`as-uploads-${env.id}`}>Folders the AI may upload test files from (one per line)</label>
+          <textarea id={`as-uploads-${env.id}`} className="input font-mono text-xs" rows={3} value={uploadDirs} onChange={(e) => setUploadDirs(e.target.value)} placeholder={"C:\\kairos-test-data"} />
+          <p className="mt-1 text-xs text-slate-500">Leave empty if no test case uploads files.</p>
+        </div>
+      </div>
       <div>
         <label className="label" htmlFor={`as-notes-${env.id}`}>Notes for the AI (optional)</label>
         <textarea id={`as-notes-${env.id}`} className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Test data, file locations, quirks…" />

@@ -1,9 +1,11 @@
 # Future local automation runner — interface design
 
-**Status: design only. Nothing in this document is implemented.** Kairos Tester
-currently shows every runner as **Not connected** and disables automated
-execution. There is no Playwright integration in this version, and Kairos
-Tester never executes uploaded or arbitrary scripts.
+**Status: superseded.** The runner that was built (`runner/`, started with
+`npm run runner`) is a local AI runner that uses the services layer and the
+database directly, with a `RunnerStatus` heartbeat, instead of the HTTP API
+below. This document is kept as the design to follow if the runner ever has to
+run on a different machine from the database. See `docs/redesign.md`. Kairos
+Tester still never executes uploaded or arbitrary scripts.
 
 ## Why a separate runner
 

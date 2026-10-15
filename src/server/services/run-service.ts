@@ -11,6 +11,7 @@ import { isoDateToDbDate, todayIso } from "@/lib/dates";
 import { completeAttempt } from "@/server/services/execution-service";
 import { aiConfig, ollamaChat, extractJson } from "@/server/ai/ollama";
 import { getEvidenceStorage } from "@/server/storage/evidence-storage";
+import { runnerStatus } from "@/server/services/attention-service";
 
 // ------------------------------------------------------------------ planning
 
@@ -361,8 +362,6 @@ export async function startRun(db: Db, applicationId: string, input: z.infer<typ
 
 // ------------------------------------------------------------------ live view
 
-const RUNNER_STALE_MS = 20_000;
-
 export async function runView(db: Db, applicationId: string, runId: string) {
   const run = await db.testRun.findFirst({
     where: { id: runId, cycle: { applicationId } },
@@ -381,8 +380,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
     },
   });
   if (!run) throw notFound("Run not found.");
-  const runner = await db.runnerStatus.findUnique({ where: { id: "local" } });
-  const runnerOnline = Boolean(runner && Date.now() - runner.lastSeenAt.getTime() < RUNNER_STALE_MS);
+  const runnerOnline = (await runnerStatus(db)).online;
 
   const items = run.items.map((it) => {
     const a = it.attempt;

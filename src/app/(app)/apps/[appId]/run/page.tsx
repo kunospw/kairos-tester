@@ -3,6 +3,7 @@ import { getPrisma } from "@/server/db";
 import { aiConfig } from "@/server/ai/ollama";
 import { parseProfile } from "@/lib/agent-profile";
 import { listRuns } from "@/server/services/run-service";
+import { runnerStatus } from "@/server/services/attention-service";
 import { Alert, Card } from "@/components/ui";
 import { StartRun } from "@/components/start-run";
 import { AgentSetupForm } from "@/components/agent-setup-form";
@@ -13,7 +14,7 @@ export const metadata = { title: "Run tests" };
 export default async function RunPage({ params }: { params: Promise<{ appId: string }> }) {
   const { appId } = await params;
   const db = getPrisma();
-  const [envs, cases, runs, lastCycle] = await Promise.all([
+  const [envs, cases, runs, lastCycle, runner] = await Promise.all([
     db.environment.findMany({ where: { applicationId: appId }, orderBy: { name: "asc" } }),
     db.testCase.findMany({
       where: { applicationId: appId, archived: false },
@@ -21,6 +22,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
     }),
     listRuns(db, appId),
     db.testCycle.findFirst({ where: { applicationId: appId, kind: "STANDARD" }, orderBy: { createdAt: "desc" } }),
+    runnerStatus(db),
   ]);
   const ready = envs.filter((e) => parseProfile(e.agentProfile));
   // Rounds with work left: cases without a result yet (plus Blocked / Failed for optional retries).
@@ -66,8 +68,20 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
       ) : ready.length === 0 ? (
         <Card title={`One-time setup: teach the AI how to use “${envs[0].name}”`}>
           <AgentSetupForm appId={appId} env={{ id: envs[0].id, name: envs[0].name, targetUrl: envs[0].targetUrl, disposable: envs[0].disposable, profile: null }} />
+          {envs.length > 1 && (
+            <p className="mt-3 text-xs text-slate-500">
+              Set up your other environments later in <Link className="underline" href={`/apps/${appId}/settings#ai-setup`}>Setup</Link>.
+            </p>
+          )}
         </Card>
       ) : (
+        <>
+        {!runner.online && (
+          <Alert kind="info" title="The AI runner is not running">
+            You can start a run now; it waits until the runner picks it up. In a second terminal in the <code>kairos-tester</code> folder run{" "}
+            <code className="rounded bg-white px-1">npm run runner</code> and leave it open.
+          </Alert>
+        )}
         <StartRun
           appId={appId}
           environments={ready.map((e) => ({ id: e.id, name: e.name, disposable: e.disposable }))}
@@ -75,6 +89,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
           defaultBuild={lastCycle?.buildLabel ?? ""}
           resumable={resumable}
         />
+        </>
       )}
 
       {runs.length > 0 && (

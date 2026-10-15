@@ -18,7 +18,7 @@ import { formatPercent } from "@/lib/metrics";
 import { formatDateOnly } from "@/lib/dates";
 import { CYCLE_KIND_LABEL, EXECUTION_METHOD_LABEL, type AttemptStatusValue, type OutcomeValue } from "@/lib/domain";
 
-export const metadata = { title: "Overview" };
+export const metadata = { title: "Results" };
 
 export default async function OverviewPage({
   params,
@@ -36,17 +36,23 @@ export default async function OverviewPage({
   if (cycles.length === 0) {
     return (
       <>
-        <PageHeader title="Overview" />
+        <PageHeader title="Results" />
         <EmptyState
-          title={caseCount ? "No test cycles yet" : "Nothing to show yet"}
+          title={caseCount ? "No results yet" : "Nothing to show yet"}
           action={
             <div className="flex gap-2">
-              <Link className="btn-accent" href={`/apps/${appId}/cases/import`}>Import checklist</Link>
-              <Link className="btn-secondary" href={`/apps/${appId}/cycles`}>Create a cycle</Link>
+              {caseCount ? (
+                <Link className="btn-accent" href={`/apps/${appId}/run`}>▶ Run tests</Link>
+              ) : (
+                <Link className="btn-accent" href={`/apps/${appId}/cases/import`}>Import checklist</Link>
+              )}
+              <Link className="btn-secondary" href={`/apps/${appId}/cycles`}>Record results by hand</Link>
             </div>
           }
         >
-          Import a checklist (its recorded results become a historical cycle), or create a cycle to start testing.
+          {caseCount
+            ? "Start a run and the AI tests what it can; results appear here."
+            : "Import a checklist (its recorded results become a historical cycle), then run tests."}
         </EmptyState>
       </>
     );
@@ -78,14 +84,19 @@ export default async function OverviewPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Overview"
+        title="Results"
         subtitle={
           <span>
             {CYCLE_KIND_LABEL[selected.kind]} · Environment: <strong>{res.cycle.environment?.name ?? "not recorded"}</strong> · Build:{" "}
             <strong>{selected.buildLabel ?? "not recorded"}</strong>
           </span>
         }
-        actions={<CyclePicker cycles={cycles} value={selected.id} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <CyclePicker cycles={cycles} value={selected.id} />
+            <Link className="text-sm text-teal-700 hover:underline" href={`${base}/cycles`}>All cycles</Link>
+          </div>
+        }
       />
       {res.simulation && <SimulationBanner />}
 

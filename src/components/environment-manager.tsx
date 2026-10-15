@@ -67,7 +67,7 @@ export function EnvironmentManager({
         <input className="input" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" />
         <button className="btn-primary" type="submit">Add environment</button>
       </form>
-      <p className="mt-2 text-xs text-slate-500">Target URLs are only shown as links for testers to open the application themselves. Kairos Tester never contacts them.</p>
+      <p className="mt-2 text-xs text-slate-500">The web app never contacts these addresses. Only the AI runner on your computer opens one, and only after you complete its AI setup below.</p>
     </Card>
   );
 }
