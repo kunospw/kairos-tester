@@ -205,6 +205,23 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
         {notice && <Alert kind="success">{notice}</Alert>}
 
         {steps.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded bg-slate-50 p-2 text-sm">
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => {
+                setSteps(steps.map((x) => ({ ...x, result: "PASS" })));
+                setOutcome("PASS");
+                touch();
+              }}
+            >
+              ✓ Everything worked
+            </button>
+            <span className="text-xs text-slate-500">Marks every check Pass and the result Pass. You still click Complete, and can change anything first.</span>
+          </div>
+        )}
+
+        {steps.length > 0 && (
           <fieldset>
             <legend className="label">Checks</legend>
             <ol className="space-y-2">
@@ -231,6 +248,8 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                             checked={s.result === o.value}
                             onChange={() => {
                               setSteps(steps.map((x) => (x.stepIndex === s.stepIndex ? { ...x, result: o.value } : x)));
+                              // Suggest the overall result from the first problem; it stays editable.
+                              if (!outcome && (o.value === "FAIL" || o.value === "BLOCKED")) setOutcome(o.value);
                               touch();
                             }}
                           />
@@ -239,52 +258,30 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                       ))}
                     </div>
                   </div>
-                  <input
-                    className="input mt-1 text-xs"
-                    placeholder="Note for this check (optional)"
-                    value={s.note}
-                    onChange={(e) => {
-                      setSteps(steps.map((x) => (x.stepIndex === s.stepIndex ? { ...x, note: e.target.value } : x)));
-                      touch();
-                    }}
-                    aria-label={`Note for check ${i + 1}`}
-                  />
+                  {(s.note || ["FAIL", "BLOCKED", "NOT_APPLICABLE"].includes(s.result)) && (
+                    <input
+                      className="input mt-1 text-xs"
+                      placeholder="What happened? (optional)"
+                      value={s.note}
+                      onChange={(e) => {
+                        setSteps(steps.map((x) => (x.stepIndex === s.stepIndex ? { ...x, note: e.target.value } : x)));
+                        touch();
+                      }}
+                      aria-label={`Note for check ${i + 1}`}
+                    />
+                  )}
                 </li>
               ))}
             </ol>
           </fieldset>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="ex-actual">Actual result</label>
-            <textarea id="ex-actual" className="input" rows={4} value={actualResult} onChange={(e) => { setActualResult(e.target.value); touch(); }} placeholder="What actually happened (screen, message, row)" />
-          </div>
-          <div>
-            <label className="label" htmlFor="ex-remarks">Remarks</label>
-            <textarea id="ex-remarks" className="input" rows={4} value={remarks} onChange={(e) => { setRemarks(e.target.value); touch(); }} />
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <div>
-            <label className="label" htmlFor="ex-outcome">Result</label>
-            <select id="ex-outcome" className="input" value={outcome} onChange={(e) => { setOutcome(e.target.value as OutcomeValue | ""); touch(); }}>
-              <option value="">Choose…</option>
-              {COMPLETE_OUTCOMES.map((o) => <option key={o} value={o}>{OUTCOME_LABEL[o]}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="ex-tester">Tester</label>
-            <input id="ex-tester" className="input" value={tester} onChange={(e) => { setTester(e.target.value); touch(); }} />
-          </div>
-          <div>
-            <label className="label" htmlFor="ex-method">Execution method</label>
-            <select id="ex-method" className="input" value={method} disabled={hybrid} onChange={(e) => { setMethod(e.target.value as "MANUAL" | "HYBRID"); touch(); }}>
-              <option value="MANUAL">Manual</option>
-              <option value="HYBRID">Hybrid (automated steps + human checkpoint)</option>
-            </select>
-          </div>
+        <div>
+          <label className="label" htmlFor="ex-outcome">Result</label>
+          <select id="ex-outcome" className="input md:w-64" value={outcome} onChange={(e) => { setOutcome(e.target.value as OutcomeValue | ""); touch(); }}>
+            <option value="">Choose…</option>
+            {COMPLETE_OUTCOMES.map((o) => <option key={o} value={o}>{OUTCOME_LABEL[o]}</option>)}
+          </select>
         </div>
 
         {needsReason && (
@@ -308,15 +305,41 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
           </Alert>
         )}
 
-        <div className="rounded border border-slate-200 p-3">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={partialCoverage} onChange={(e) => { setPartialCoverage(e.target.checked); touch(); }} />
-            Partial coverage: parts of this case were not exercised
-          </label>
-          {partialCoverage && (
-            <textarea className="input mt-2" rows={2} value={partialCoverageNote} onChange={(e) => { setPartialCoverageNote(e.target.value); touch(); }} placeholder="What was not covered, and why?" aria-label="Partial coverage explanation" />
-          )}
-        </div>
+        <details className="rounded border border-slate-200 p-3" open={Boolean(actualResult || remarks || partialCoverage)}>
+          <summary className="cursor-pointer text-sm font-medium text-slate-700">More details (all optional)</summary>
+          <div className="mt-3 space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="ex-actual">Actual result</label>
+                <textarea id="ex-actual" className="input" rows={3} value={actualResult} onChange={(e) => { setActualResult(e.target.value); touch(); }} placeholder="What actually happened (screen, message, row)" />
+              </div>
+              <div>
+                <label className="label" htmlFor="ex-remarks">Remarks</label>
+                <textarea id="ex-remarks" className="input" rows={3} value={remarks} onChange={(e) => { setRemarks(e.target.value); touch(); }} />
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="ex-tester">Tester</label>
+                <input id="ex-tester" className="input" value={tester} onChange={(e) => { setTester(e.target.value); touch(); }} />
+              </div>
+              <div>
+                <label className="label" htmlFor="ex-method">Execution method</label>
+                <select id="ex-method" className="input" value={method} disabled={hybrid} onChange={(e) => { setMethod(e.target.value as "MANUAL" | "HYBRID"); touch(); }}>
+                  <option value="MANUAL">Manual</option>
+                  <option value="HYBRID">Hybrid (automated steps + human checkpoint)</option>
+                </select>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={partialCoverage} onChange={(e) => { setPartialCoverage(e.target.checked); touch(); }} />
+              Partial coverage: parts of this case were not exercised
+            </label>
+            {partialCoverage && (
+              <textarea className="input" rows={2} value={partialCoverageNote} onChange={(e) => { setPartialCoverageNote(e.target.value); touch(); }} placeholder="What was not covered, and why?" aria-label="Partial coverage explanation" />
+            )}
+          </div>
+        </details>
 
         {isHybrid && (
           <div className="rounded border border-purple-300 bg-purple-50 p-3 text-sm text-purple-950">
