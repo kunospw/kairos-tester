@@ -174,7 +174,7 @@ export function ImportWizard({
           <li
             key={label}
             aria-current={step === i + 1 ? "step" : undefined}
-            className={`rounded-full px-3 py-1 ${step === i + 1 ? "bg-navy-700 text-white" : step > i + 1 ? "bg-teal-100 text-teal-800" : "bg-slate-200 text-slate-600"}`}
+            className={`rounded-full px-3 py-1 ${step === i + 1 ? "bg-ink-700 text-white" : step > i + 1 ? "bg-accent-100 text-accent-800" : "bg-slate-200 text-slate-600"}`}
           >
             {i + 1}. {label}
           </li>
@@ -183,7 +183,7 @@ export function ImportWizard({
       <FormError error={error} />
 
       {step === 1 && (
-        <Card title="1. Choose the destination cycle and file">
+        <Card title="1. Choose the destination round and file">
           <div className="grid gap-5 lg:grid-cols-2">
             <fieldset className="space-y-3">
               <legend className="label">Historical results go into</legend>
@@ -191,8 +191,8 @@ export function ImportWizard({
                 <label className="flex items-start gap-2 text-sm">
                   <input type="radio" checked={targetKind === "existing"} onChange={() => setTargetKind("existing")} className="mt-1" />
                   <span className="flex-1">
-                    An existing cycle
-                    <select className="input mt-1" value={cycleId} onChange={(e) => setCycleId(e.target.value)} disabled={targetKind !== "existing"} aria-label="Existing cycle">
+                    An existing round
+                    <select className="input mt-1" value={cycleId} onChange={(e) => setCycleId(e.target.value)} disabled={targetKind !== "existing"} aria-label="Existing round">
                       {cycles.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}{c.kind === "HISTORICAL_IMPORT" ? " (imported)" : ""}</option>
                       ))}
@@ -203,8 +203,8 @@ export function ImportWizard({
               <label className="flex items-start gap-2 text-sm">
                 <input type="radio" checked={targetKind === "new"} onChange={() => setTargetKind("new")} className="mt-1" />
                 <span className="flex-1 space-y-2">
-                  A new historical cycle
-                  <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} disabled={targetKind !== "new"} aria-label="New cycle name" placeholder="Cycle name" />
+                  A new historical round
+                  <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} disabled={targetKind !== "new"} aria-label="New round name" placeholder="Round name" />
                   <input className="input" value={buildLabel} onChange={(e) => setBuildLabel(e.target.value)} disabled={targetKind !== "new"} aria-label="Build label" placeholder="Build / release label (leave blank if unknown)" />
                   <select className="input" value={environmentId} onChange={(e) => setEnvironmentId(e.target.value)} disabled={targetKind !== "new"} aria-label="Environment">
                     <option value="">Environment: not recorded</option>
@@ -384,7 +384,7 @@ export function ImportWizard({
                             </select>
                           </div>
                         ) : (
-                          <span className="text-slate-400">new</span>
+                          <span className="text-slate-500">new</span>
                         )}
                       </td>
                     </tr>
@@ -424,7 +424,7 @@ export function ImportWizard({
           </dl>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link className="btn-primary" href={`/apps/${appId}?cycle=${result.cycleId}`}>View overview</Link>
-            <Link className="btn-secondary" href={`/apps/${appId}/cycles/${result.cycleId}`}>Open the cycle</Link>
+            <Link className="btn-secondary" href={`/apps/${appId}/cycles/${result.cycleId}`}>Open the round</Link>
             <Link className="btn-secondary" href={`/apps/${appId}/cases`}>Browse cases</Link>
           </div>
         </Card>

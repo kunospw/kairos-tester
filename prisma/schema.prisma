@@ -637,6 +637,8 @@ enum RunStatus {
 enum RunItemStatus {
   QUEUED
   RUNNING
+  /// Waiting for another case in the run (a prerequisite) to pass; starts by itself when it does.
+  WAITING
   NEEDS_HUMAN
   DONE
   SKIPPED
@@ -644,6 +646,13 @@ enum RunItemStatus {
 }
 
 /// SETUP items rebuild data that later cases need; their results go to a separate setup cycle.
+/// A person driving the runner's browser from the live view. The AI pauses while ACTIVE.
+enum TakeoverState {
+  NONE
+  REQUESTED
+  ACTIVE
+}
+
 enum RunItemPurpose {
   TEST
   SETUP
@@ -678,6 +687,11 @@ model RunItem {
   cycleCaseId String
   sortOrder   Int
   purpose     RunItemPurpose @default(TEST)
+  takeover    TakeoverState @default(NONE)
+  pause       PauseState    @default(NONE)
+  inputs      LiveInput[]
+  steps       AgentStep[]
+  commands    AgentCommand[]
   plan        RunPlan
   planReason  String?
   status      RunItemStatus @default(QUEUED)
@@ -745,4 +759,72 @@ model RunnerStatus {
   id         String   @id
   lastSeenAt DateTime
   info       String?
+  /// Latest frame of the runner's browser (JPEG), for the live view on the run page.
+  frame       Bytes?
+  frameAt     DateTime?
+  frameItemId String?
+}
+
+/// A person pausing the AI from the run page. The runner pauses at its next checkpoint.
+enum PauseState {
+  NONE
+  REQUESTED
+  PAUSED
+}
+
+enum AgentStepKind {
+  AI
+  RECIPE
+  PERSON
+  SYSTEM
+}
+
+/// One entry in the step log shown beside the live view: what was done, why, and how it went.
+model AgentStep {
+  id        String        @id @default(cuid())
+  runItemId String
+  kind      AgentStepKind
+  /// Plain-language action, e.g. "Click button \"Save\"".
+  label     String
+  /// The AI's own reasoning for this action.
+  thought   String?
+  /// What happened (filled in after the action ran).
+  result    String?
+  ok        Boolean?
+  createdAt DateTime      @default(now())
+
+  runItem RunItem @relation(fields: [runItemId], references: [id], onDelete: Cascade)
+
+  @@index([runItemId, createdAt])
+}
+
+/// Something a person told the running AI: a message to take into account, or "stop this case".
+model AgentCommand {
+  id        String    @id @default(cuid())
+  runItemId String
+  /// MESSAGE | STOP
+  kind      String
+  text      String?
+  by        String
+  /// The step-log entry that shows this command.
+  stepId    String?
+  createdAt DateTime  @default(now())
+  handledAt DateTime?
+
+  runItem RunItem @relation(fields: [runItemId], references: [id], onDelete: Cascade)
+
+  @@index([runItemId, handledAt])
+}
+
+/// Clicks and keys sent from the live view; the runner applies them while a person has control.
+model LiveInput {
+  id        String   @id @default(cuid())
+  runItemId String
+  kind      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  runItem RunItem @relation(fields: [runItemId], references: [id], onDelete: Cascade)
+
+  @@index([runItemId, createdAt])
 }

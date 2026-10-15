@@ -25,7 +25,7 @@ export function ProposalItems({ appId, kind, items, cases }: { appId: string; ki
       {items.map((item) => (
         <div key={item.id} className="card p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-navy-800">Item {item.index + 1}</span>
+            <span className="text-sm font-semibold text-ink-800">Item {item.index + 1}</span>
             <StatusPill status={item.status} />
           </div>
           {item.status !== "PENDING" ? (
@@ -63,7 +63,7 @@ function Decided({ appId, item, kind }: { appId: string; item: ItemView; kind: s
       {item.resultingCase && (
         <p className="mt-1">
           Created{" "}
-          <Link className="text-teal-700 underline" href={`/apps/${appId}/cases/${item.resultingCase.id}`}>
+          <Link className="text-accent-700 underline" href={`/apps/${appId}/cases/${item.resultingCase.id}`}>
             {item.resultingCase.externalId} v{item.resultingCase.versionNumber}
           </Link>
         </p>
@@ -173,7 +173,7 @@ function DraftCaseItem({ appId, item, cases }: { appId: string; item: ItemView; 
         <ol className="space-y-1">
           {steps.map((s, i) => (
             <li key={i} className="flex items-start gap-2">
-              <span className="pt-1.5 text-slate-400">{i + 1}.</span>
+              <span className="pt-1.5 text-slate-500">{i + 1}.</span>
               <textarea className="input" rows={1} value={s.text} onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} aria-label={`Step ${i + 1}`} />
               <label className="flex items-center gap-1 whitespace-nowrap pt-1.5 text-xs">
                 <input type="checkbox" checked={s.required} onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, required: e.target.checked } : x)))} /> required
@@ -250,7 +250,7 @@ function FindingItem({ appId, item }: { appId: string; item: ItemView }) {
         <button className="btn-accent" disabled={d.busy || !summary.trim()} onClick={() => d.accept({ type, summary })}>Accept as review flag</button>
         <RejectControls d={d} />
       </div>
-      <p className="text-xs text-slate-500">Accepting records a flag on the case in this cycle. The recorded result stays as it is.</p>
+      <p className="text-xs text-slate-500">Accepting records a flag on the case in this round. The recorded result stays as it is.</p>
     </div>
   );
 }

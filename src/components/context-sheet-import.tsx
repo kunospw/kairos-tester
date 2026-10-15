@@ -41,14 +41,14 @@ export function ContextSheetImport({ appId, file, sheets }: { appId: string; fil
   if (!sheets.length) return null;
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-navy-800">Optional: use another sheet as application context</h3>
+      <h3 className="text-sm font-semibold text-ink-800">Optional: use another sheet as application context</h3>
       <p className="text-xs text-slate-600">
         Guidance text (for example a “How to use” sheet) can be saved as <strong>unreviewed</strong> context entries for later human review. These statements are not
         treated as verified requirements, and nothing here affects the case import.
       </p>
       <FormError error={error} />
       {saved !== null ? (
-        <Alert kind="success" title={`${saved} unreviewed context entries saved.`}>Review them under Context &amp; AI.</Alert>
+        <Alert kind="success" title={`${saved} unreviewed context entries saved.`}>Review them under Setup → knowledge &amp; AI drafting.</Alert>
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-2">

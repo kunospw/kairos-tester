@@ -126,7 +126,7 @@ export function CaseForm({
     <form onSubmit={submit} className="space-y-4">
       <FormError error={error} />
       {mode === "edit" && (
-        <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+        <p className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink-800">
           Saving creates <strong>version {(versionNumber ?? 0) + 1}</strong>. Version {versionNumber} and every execution that used it stay unchanged.
         </p>
       )}
@@ -201,7 +201,7 @@ export function CaseForm({
             <ol className="space-y-1 text-sm">
               {v.steps.map((s, i) => (
                 <li key={i} className="flex items-start gap-2 rounded border border-slate-200 px-2 py-1">
-                  <span className="text-slate-400">{i + 1}.</span>
+                  <span className="text-slate-500">{i + 1}.</span>
                   <span className="prewrap flex-1">{s.text}</span>
                   <label className="flex items-center gap-1 whitespace-nowrap text-xs">
                     <input

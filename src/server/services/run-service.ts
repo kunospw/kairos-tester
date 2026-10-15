@@ -11,6 +11,8 @@ import { isoDateToDbDate, todayIso } from "@/lib/dates";
 import { completeAttempt } from "@/server/services/execution-service";
 import { aiConfig, ollamaChat, extractJson } from "@/server/ai/ollama";
 import { getEvidenceStorage } from "@/server/storage/evidence-storage";
+import { runnerStatus } from "@/server/services/attention-service";
+import { RECHECK_PREFIX, dependencyState, personAskedToRecheck, releaseWaiting } from "@/server/services/run-waiting";
 
 // ------------------------------------------------------------------ planning
 
@@ -157,10 +159,11 @@ export async function planRun(db: Db, applicationId: string, input: z.infer<type
     reachableEnvironments: profile?.caseEnvironments ?? [],
     disposable: env.disposable,
     codesWithoutInbox: profile?.signIn.method === "email_code_outbox",
+    readOnly: profile?.readOnly ?? false,
   };
-  const planOne = (externalId: string, v: { title: string; environment: string | null; preconditions: string | null; stepsText: string | null; expectedResult: string | null }) =>
+  const planOne = (externalId: string, v: { title: string; environment: string | null; preconditions: string | null; stepsText: string | null; expectedResult: string | null; testData?: string | null }) =>
     profile
-      ? planCase({ externalId, title: v.title, environment: v.environment, preconditions: v.preconditions, stepsText: v.stepsText, expectedResult: v.expectedResult }, ctx)
+      ? planCase({ externalId, title: v.title, environment: v.environment, preconditions: v.preconditions, stepsText: v.stepsText, expectedResult: v.expectedResult, testData: v.testData }, ctx)
       : { plan: "NEEDS_HUMAN" as Plan, reason: "This environment is not set up for the AI runner yet." };
 
   if (input.scope.mode === "continue_cycle") {
@@ -361,9 +364,8 @@ export async function startRun(db: Db, applicationId: string, input: z.infer<typ
 
 // ------------------------------------------------------------------ live view
 
-const RUNNER_STALE_MS = 20_000;
-
-export async function runView(db: Db, applicationId: string, runId: string) {
+/** `focusItemId` pins the step log to one case; by default it follows the case running now. */
+export async function runView(db: Db, applicationId: string, runId: string, focusItemId?: string | null) {
   const run = await db.testRun.findFirst({
     where: { id: runId, cycle: { applicationId } },
     include: {
@@ -381,8 +383,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
     },
   });
   if (!run) throw notFound("Run not found.");
-  const runner = await db.runnerStatus.findUnique({ where: { id: "local" } });
-  const runnerOnline = Boolean(runner && Date.now() - runner.lastSeenAt.getTime() < RUNNER_STALE_MS);
+  const runnerOnline = (await runnerStatus(db)).online;
 
   const items = run.items.map((it) => {
     const a = it.attempt;
@@ -401,6 +402,8 @@ export async function runView(db: Db, applicationId: string, runId: string) {
       status: it.status,
       statusNote: it.statusNote,
       currentStep: it.currentStep,
+      takeover: it.takeover,
+      pause: it.pause,
       lastShotId: it.lastShotId,
       result,
       proposed: a?.proposedOutcome ?? null,
@@ -411,6 +414,26 @@ export async function runView(db: Db, applicationId: string, runId: string) {
     };
   });
   const count = (f: (i: (typeof items)[number]) => boolean) => items.filter(f).length;
+  // The case shown in the step log: the one running now, else the one that ran last.
+  const focusRow =
+    (focusItemId ? run.items.find((i) => i.id === focusItemId) : undefined) ??
+    run.items.find((i) => i.status === "RUNNING") ??
+    [...run.items].filter((i) => i.startedAt).sort((a, b) => (b.startedAt?.getTime() ?? 0) - (a.startedAt?.getTime() ?? 0))[0] ??
+    null;
+  const focus = focusRow
+    ? {
+        itemId: focusRow.id,
+        steps: (await db.agentStep.findMany({ where: { runItemId: focusRow.id }, orderBy: { createdAt: "asc" }, take: 200 })).map((st) => ({
+          id: st.id,
+          kind: st.kind,
+          label: st.label,
+          thought: st.thought,
+          result: st.result,
+          ok: st.ok,
+          at: st.createdAt.toISOString(),
+        })),
+      }
+    : null;
   return {
     id: run.id,
     status: run.status,
@@ -432,6 +455,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
       done: count((i) => i.result !== null || (i.status === "SKIPPED" && i.openRequests.length === 0)),
     },
     items,
+    focus,
     events: run.events.map((e) => ({ at: e.createdAt.toISOString(), message: e.message })),
   };
 }
@@ -451,7 +475,7 @@ export async function cancelRun(db: Db, applicationId: string, runId: string, us
   const items = await db.runItem.findMany({ where: { runId, attemptId: { not: null } }, select: { attemptId: true } });
   for (const it of items) await discardUndecidedAgentAttempt(db, it.attemptId!);
   await db.$transaction([
-    db.runItem.updateMany({ where: { runId, status: { in: ["QUEUED", "NEEDS_HUMAN"] } }, data: { status: "SKIPPED", statusNote: `Run cancelled by ${user}.` } }),
+    db.runItem.updateMany({ where: { runId, status: { in: ["QUEUED", "WAITING", "NEEDS_HUMAN"] } }, data: { status: "SKIPPED", statusNote: `Run cancelled by ${user}.` } }),
     db.humanRequest.updateMany({ where: { runItem: { runId }, status: "OPEN" }, data: { status: "SKIPPED", answer: "run cancelled", answeredBy: user, answeredAt: new Date() } }),
     db.testRun.update({ where: { id: runId }, data: { status: "CANCELLED", finishedAt: new Date() } }),
     db.runEvent.create({ data: { runId, message: `Run cancelled by ${user}.` } }),
@@ -479,7 +503,7 @@ export async function discardUndecidedAgentAttempt(db: Db, attemptId: string) {
 // ------------------------------------------------------------------ people answering
 
 export const answerSchema = z.object({
-  action: z.enum(["answer", "skip", "confirm", "override_pass", "override_fail", "override_blocked", "retry"]),
+  action: z.enum(["answer", "skip", "confirm", "override_pass", "override_fail", "override_blocked", "retry", "recheck"]),
   text: z.string().trim().max(5000).nullish(),
 });
 
@@ -501,6 +525,7 @@ export async function answerRequest(db: Db, applicationId: string, requestId: st
       await db.runItem.update({ where: { id: item.id }, data: { status: "SKIPPED", statusNote: input.text || `Skipped by ${user}.` } });
     }
     await event(`${user} skipped: ${req.question}`);
+    await maybeFinishRun(db, item.runId);
     return { ok: true };
   }
   if (req.kind === "INPUT") {
@@ -508,18 +533,34 @@ export async function answerRequest(db: Db, applicationId: string, requestId: st
     await close("ANSWERED", input.text);
     if (item.status === "NEEDS_HUMAN") {
       // The case was parked while waiting: run it again with this answer.
+      if (item.attempt && item.attempt.status !== "COMPLETED") await discardUndecidedAgentAttempt(db, item.attempt.id);
       await db.runItem.update({ where: { id: item.id }, data: { status: "QUEUED", attemptId: null, statusNote: "Answer received; the AI will run this case again." } });
       await db.testRun.update({ where: { id: item.runId }, data: { status: "RUNNING", finishedAt: null } });
     }
     await event(`${user} answered the AI's question.`);
     return { ok: true };
   }
-  if (input.action === "retry") {
-    await close("ANSWERED", "retry");
-    if (item.attempt) await discardUndecidedAgentAttempt(db, item.attempt.id);
-    await db.runItem.update({ where: { id: item.id }, data: { status: "QUEUED", statusNote: `Retry requested by ${user}.`, attemptId: null } });
+  if (input.action === "retry" || input.action === "recheck") {
+    // "Done, check it again": the person fixed something, did the manual part, or wants
+    // the case run despite a prerequisite. The AI revisits it next and confirms the result.
+    // Back in the queue first, so cases waiting on this one keep waiting instead of
+    // being told it failed.
+    await close("ANSWERED", `${RECHECK_PREFIX}${input.text ? `: ${input.text}` : ""}`);
+    await db.runItem.update({
+      where: { id: item.id },
+      data: { status: "QUEUED", statusNote: `${user} asked the AI to check this again.`, attemptId: null, finishedAt: null },
+    });
     await db.testRun.update({ where: { id: item.runId }, data: { status: "RUNNING", finishedAt: null } });
-    await event(`${user} asked the AI to retry ${req.question.split(":")[0]}.`);
+    const a = item.attempt;
+    if (a && a.status !== "COMPLETED") {
+      if (a.proposedOutcome === "FAIL" && req.kind === "CONFIRM_RESULT") {
+        // Keep the failure in the history; the re-check becomes the next attempt (a retest).
+        await completeAttempt(db, a.id, { outcome: "FAIL", outcomeReason: a.outcomeReason || "Failed; re-check requested after a fix", humanCheckpointConfirmed: true }, user);
+      } else {
+        await discardUndecidedAgentAttempt(db, a.id);
+      }
+    }
+    await event(`${user} asked the AI to check ${req.question.split(/[: ]/)[0]} again.`);
     return { ok: true };
   }
   // CONFIRM_RESULT / RUN_ERROR decisions on the AI's attempt
@@ -546,6 +587,7 @@ export async function answerRequest(db: Db, applicationId: string, requestId: st
 }
 
 export async function maybeFinishRun(db: Db, runId: string) {
+  await releaseWaiting(db, runId);
   const open = await db.runItem.count({ where: { runId, status: { in: ["QUEUED", "RUNNING"] } } });
   const run = await db.testRun.findUniqueOrThrow({ where: { id: runId } });
   if (open === 0 && run.status === "RUNNING") {
@@ -555,6 +597,27 @@ export async function maybeFinishRun(db: Db, runId: string) {
 }
 
 // ------------------------------------------------------------------ runner side
+
+/** Live view: the latest frame of the runner's browser, shown beside the run page. */
+export async function publishFrame(db: Db, runItemId: string, jpeg: Uint8Array) {
+  const frame = new Uint8Array(jpeg);
+  const now = new Date();
+  await db.runnerStatus.upsert({
+    where: { id: "local" },
+    create: { id: "local", lastSeenAt: now, info: "running", frame, frameAt: now, frameItemId: runItemId },
+    update: { frame, frameAt: now, frameItemId: runItemId },
+  });
+}
+
+/** Frames older than this are not live any more (the case ended or the runner stopped). */
+const FRAME_STALE_MS = 15_000;
+
+export async function liveFrame(db: Db, applicationId: string, runId: string) {
+  const r = await db.runnerStatus.findUnique({ where: { id: "local" }, select: { frame: true, frameAt: true, frameItemId: true } });
+  if (!r?.frame || !r.frameAt || !r.frameItemId || Date.now() - r.frameAt.getTime() > FRAME_STALE_MS) return null;
+  const item = await db.runItem.findFirst({ where: { id: r.frameItemId, runId, run: { cycle: { applicationId } } }, select: { id: true } });
+  return item ? { jpeg: r.frame, at: r.frameAt, runItemId: item.id } : null;
+}
 
 export async function heartbeat(db: Db, info: string) {
   await db.runnerStatus.upsert({ where: { id: "local" }, create: { id: "local", lastSeenAt: new Date(), info }, update: { lastSeenAt: new Date(), info } });
@@ -579,19 +642,21 @@ export async function claimNext(db: Db) {
 }
 export type ClaimedItem = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 
-/** If a case this one depends on did not pass in this run, skip it instead of testing on a broken base. */
-export async function unmetDependency(db: Db, item: ClaimedItem): Promise<string | null> {
-  const deps = dependenciesOf(item.cycleCase.caseVersion.preconditions, item.cycleCase.testCase.externalId);
-  if (!deps.length) return null;
-  const others = await db.runItem.findMany({
-    where: { runId: item.runId, cycleCase: { testCase: { externalId: { in: deps } } } },
-    include: { cycleCase: { include: { testCase: true } }, attempt: true },
-  });
-  for (const o of others) {
-    const passed = o.attempt?.status === "COMPLETED" && o.attempt.outcome === "PASS";
-    if (!passed) return `Depends on ${o.cycleCase.testCase.externalId}, which has not passed in this run.`;
-  }
-  return null;
+/**
+ * If a case this one depends on hasn't passed yet in this run, park this one as WAITING
+ * (not skipped): it starts by itself when the prerequisite passes. Returns the reason, or
+ * null when the case can run now.
+ */
+export async function waitForPrerequisites(db: Db, item: ClaimedItem): Promise<string | null> {
+  if (await personAskedToRecheck(db, item.id)) return null;
+  const st = await dependencyState(db, item.runId, item.cycleCase.caseVersion.preconditions, item.cycleCase.testCase.externalId);
+  const blocking = [...st.pending, ...st.notPassed];
+  if (!blocking.length) return null;
+  const why = `Waits for ${blocking.join(", ")} to pass. It starts by itself when ${blocking.length === 1 ? "it does" : "they do"}.`;
+  await db.runItem.update({ where: { id: item.id }, data: { status: "WAITING", statusNote: why, currentStep: null, startedAt: null } });
+  await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${item.cycleCase.testCase.externalId}: waiting for ${blocking.join(", ")}.` } });
+  await maybeFinishRun(db, item.runId);
+  return why;
 }
 
 export async function progress(db: Db, itemId: string, step: string, runId: string, logIt = false) {
@@ -630,6 +695,10 @@ export interface AgentFinish {
   steps: StepRecord[];
   screenshots: number;
   partialNote?: string | null;
+  /** A person used the browser during this case: never record the result without them. */
+  humanTouched?: boolean;
+  /** Why a person must confirm, shown in Needs you (defaults to "a person used the browser"). */
+  why?: string;
 }
 
 export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: string, f: AgentFinish) {
@@ -639,7 +708,7 @@ export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: s
   }
   const checksText = f.checks.map((c) => `${c.passed ? "✓" : "✕"} ${c.description} (${c.detail})`).join("\n");
   const setupDone = item.purpose === "SETUP" && f.verdict === "PASS" && f.checks.length > 0 && f.checks.every((c) => c.passed);
-  const decision = setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
+  const decision = f.humanTouched && !setupDone ? ({ kind: "CONFIRM", proposed: f.verdict, why: f.why ?? "A person used the browser during this run, so please confirm the result." } as const) : setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
     verdict: f.verdict,
     confidence: f.confidence,
     checks: f.checks,
@@ -717,7 +786,7 @@ export async function askAndWait(
   db: Db,
   item: ClaimedItem,
   question: string,
-  timeoutMs = Number(process.env.RUNNER_ASK_WAIT_MS || 60_000),
+  timeoutMs = Number(process.env.RUNNER_ASK_WAIT_MS || 15_000),
 ): Promise<{ status: "answered"; answer: string } | { status: "skipped" } | { status: "timeout" }> {
   const req = await db.humanRequest.create({ data: { runItemId: item.id, kind: "INPUT", question: `${item.cycleCase.testCase.externalId}: ${question}` } });
   await db.runItem.update({ where: { id: item.id }, data: { currentStep: "Waiting for your answer" } });
@@ -732,29 +801,31 @@ export async function askAndWait(
   return { status: "timeout" };
 }
 
-/** Park a case that is waiting for a person; the run carries on with other cases. */
+/**
+ * Park a case that is waiting for a person; the run carries on with other cases. No result
+ * is recorded: the case shows as waiting for you, and answering puts it back in the queue.
+ */
 export async function parkItem(db: Db, item: ClaimedItem, attemptId: string, question: string) {
-  await db.executionAttempt.update({
-    where: { id: attemptId },
-    data: {
-      status: "COMPLETED",
-      outcome: "BLOCKED",
-      outcomeReason: `Paused: waiting for an answer from a person (${question})`,
-      completedAt: new Date(),
-      executedOn: isoDateToDbDate(todayIso()),
-    },
-  });
+  await db.executionAttempt.update({ where: { id: attemptId }, data: { remarks: `Paused: waiting for an answer from a person (${question})` } });
   await db.runItem.update({
     where: { id: item.id },
-    data: { status: "NEEDS_HUMAN", statusNote: "Waiting for your answer. Answer it and the AI will run this case again.", currentStep: null, finishedAt: new Date() },
+    data: { status: "NEEDS_HUMAN", statusNote: "Waiting for your answer. Answer it and the AI will pick this case up again.", currentStep: null, finishedAt: new Date() },
   });
-  await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${item.cycleCase.testCase.externalId}: paused until you answer; moving on.` } });
+  await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${item.cycleCase.testCase.externalId}: paused until you answer; moving on to the next case.` } });
   await maybeFinishRun(db, item.runId);
 }
 
-/** Answers a person gave for this case in earlier tries (fed back to the AI on a re-run). */
+/** What people said about this case in earlier tries (fed back to the AI when it revisits). */
 export async function previousAnswers(db: Db, itemId: string) {
-  return db.humanRequest.findMany({ where: { runItemId: itemId, kind: "INPUT", status: "ANSWERED" }, orderBy: { createdAt: "asc" } });
+  const rows = await db.humanRequest.findMany({
+    where: { runItemId: itemId, status: "ANSWERED", OR: [{ kind: "INPUT" }, { answer: { startsWith: RECHECK_PREFIX } }] },
+    orderBy: { createdAt: "asc" },
+  });
+  return rows.map((r) =>
+    r.kind === "INPUT"
+      ? r
+      : { ...r, answer: `A person dealt with this and asked you to check the case again${r.answer && r.answer.length > RECHECK_PREFIX.length ? ` (their note: ${r.answer.slice(RECHECK_PREFIX.length + 2)})` : ""}.` },
+  );
 }
 
 export type { Prisma };

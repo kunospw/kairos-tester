@@ -26,11 +26,11 @@ export function Modal({
     <dialog
       ref={ref}
       onClose={onClose}
-      className={`m-auto w-[calc(100%-2rem)] rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-navy-900/40 ${wide ? "max-w-4xl" : "max-w-lg"}`}
+      className={`m-auto w-[calc(100%-2rem)] rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-ink-900/40 ${wide ? "max-w-4xl" : "max-w-lg"}`}
       aria-label={title}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <h2 className="font-semibold text-navy-900">{title}</h2>
+        <h2 className="font-semibold text-ink-900">{title}</h2>
         <button type="button" className="rounded px-2 text-lg text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Close">
           ×
         </button>

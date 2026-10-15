@@ -98,143 +98,181 @@ export function StartRun({
   const human = plan?.filter((p) => p.plan === "NEEDS_HUMAN") ?? [];
   const blocked = plan?.filter((p) => p.plan === "NOT_ALLOWED") ?? [];
 
+  const tests = (plan?.length ?? 0) - setupCount;
   return (
-    <section className="card overflow-hidden">
-      <div className="space-y-4 p-5">
-        <FormError error={error} />
+    <section className="space-y-6">
+      <FormError error={error} />
+      <Step n={1} title="Where">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="sr-env">Test on</label>
+            <label className="label" htmlFor="sr-env">Environment</label>
             <select id="sr-env" className="input" value={environmentId} onChange={(e) => setEnvironmentId(e.target.value)}>
               {environments.map((e) => <option key={e.id} value={e.id}>{e.name}{e.disposable ? " (throwaway data)" : ""}</option>)}
             </select>
           </div>
           {kind === "new" && (
             <div>
-              <label className="label" htmlFor="sr-build">Build / version</label>
-              <input id="sr-build" className="input" value={buildLabel} onChange={(e) => setBuildLabel(e.target.value)} placeholder="optional, e.g. 1.4.2" />
+              <label className="label" htmlFor="sr-build">Build or version <span className="font-normal text-slate-500">(optional)</span></label>
+              <input id="sr-build" className="input" value={buildLabel} onChange={(e) => setBuildLabel(e.target.value)} placeholder="e.g. 1.4.2" />
             </div>
           )}
         </div>
+      </Step>
+
+      <Step n={2} title="What to test">
         {resumable.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Continue or start new">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={kind === "continue"}
-              onClick={() => setKind("continue")}
-              className={`rounded-lg border-2 p-3 text-left ${kind === "continue" ? "border-teal-600 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
-            >
-              <p className="font-semibold text-navy-900">Pick up where you left off</p>
-              <p className="text-sm text-slate-600">
-                {resumable[0].notRun} not tested yet in “{resumable[0].name}”. Results are added to that round; what is already recorded stays.
-              </p>
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={kind === "new"}
-              onClick={() => setKind("new")}
-              className={`rounded-lg border-2 p-3 text-left ${kind === "new" ? "border-teal-600 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
-            >
-              <p className="font-semibold text-navy-900">Start a new round</p>
-              <p className="text-sm text-slate-600">For a new build: every case starts as not tested.</p>
-            </button>
+          <div className="mb-4 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Continue or start new">
+            <Choice checked={kind === "continue"} onSelect={() => setKind("continue")} title="Continue a round">
+              {resumable[0].notRun} not tested yet in {resumable[0].name}. What is already recorded stays.
+            </Choice>
+            <Choice checked={kind === "new"} onSelect={() => setKind("new")} title="Start a new round">
+              For a new build. Every case starts as not tested.
+            </Choice>
           </div>
         )}
         {kind === "continue" && round && (
-          <div className="space-y-2 rounded border border-slate-200 p-3">
+          <div className="space-y-2.5">
             {resumable.length > 1 && (
               <select className="input" value={cycleId} onChange={(e) => setCycleId(e.target.value)} aria-label="Round to continue">
                 {resumable.map((r) => <option key={r.id} value={r.id}>{r.name}: {r.notRun} not tested</option>)}
               </select>
             )}
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={includeBlocked} onChange={(e) => setIncludeBlocked(e.target.checked)} disabled={!round.blocked} />
-              Also retry the {round.blocked} blocked case{round.blocked === 1 ? "" : "s"}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={includeFailed} onChange={(e) => setIncludeFailed(e.target.checked)} disabled={!round.failed} />
-              Also retest the {round.failed} failed case{round.failed === 1 ? "" : "s"} (e.g. after a fix)
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" className="mt-0.5" checked={withSetup} onChange={(e) => setWithSetup(e.target.checked)} />
-              <span>
-                Rebuild the test data first: re-run the earlier passed cases that later ones depend on (uploads, mappings, approvals, loads).
-                <span className="block text-xs text-slate-500">Setup results are kept in a separate cycle and never change this round.</span>
-              </span>
-            </label>
+            {round.blocked > 0 && (
+              <Check checked={includeBlocked} onChange={setIncludeBlocked}>
+                Retry the {round.blocked} blocked case{round.blocked === 1 ? "" : "s"}
+              </Check>
+            )}
+            {round.failed > 0 && (
+              <Check checked={includeFailed} onChange={setIncludeFailed}>
+                Retest the {round.failed} failed case{round.failed === 1 ? "" : "s"}, e.g. after a fix
+              </Check>
+            )}
+            <Check checked={withSetup} onChange={setWithSetup} hint="Re-runs earlier passed cases that later ones depend on (uploads, mappings, approvals). Their results go to a separate setup round.">
+              Rebuild the test data first
+            </Check>
           </div>
         )}
         {kind === "new" && (
-        <div>
-          <p className="label">Which tests</p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Which tests">
-            {([
-              ["all", "Everything"],
-              ["not_passed_last", "Only what didn't pass last time"],
-              ["sections", "Pick sections"],
-            ] as const).map(([v, label]) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={mode === v}
-                onClick={() => setMode(v)}
-                className={`rounded-full border px-3 py-1.5 text-sm ${mode === v ? "border-navy-700 bg-navy-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {mode === "sections" && (
-            <div className="mt-3 grid max-h-56 gap-1 overflow-auto rounded border border-slate-200 p-2 sm:grid-cols-2">
-              {sections.map((s) => (
-                <label key={s} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={picked.includes(s)} onChange={(e) => setPicked(e.target.checked ? [...picked, s] : picked.filter((x) => x !== s))} /> {s}
-                </label>
+          <div>
+            <div className="inline-flex rounded-md border border-slate-300 p-0.5" role="radiogroup" aria-label="Which tests">
+              {([
+                ["all", "Everything"],
+                ["not_passed_last", "What didn't pass last time"],
+                ["sections", "Pick sections"],
+              ] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === v}
+                  onClick={() => setMode(v)}
+                  className={`rounded px-3 py-1 text-sm ${mode === v ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-slate-100"}`}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-          )}
-        </div>
+            {mode === "sections" && (
+              <div className="mt-3 grid max-h-56 gap-1.5 overflow-auto rounded-md border border-slate-200 p-3 sm:grid-cols-2">
+                {sections.map((s) => (
+                  <label key={s} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={picked.includes(s)} onChange={(e) => setPicked(e.target.checked ? [...picked, s] : picked.filter((x) => x !== s))} /> {s}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </div>
+      </Step>
 
-      <div className="border-t border-slate-200 bg-slate-50 p-5">
+      <Step n={3} title="Start">
         {plan === null ? (
           <p className="text-sm text-slate-500">Working out what the AI can do…</p>
         ) : (
           <>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-white p-3 ring-1 ring-teal-200">
-                <p className="text-2xl font-semibold text-teal-700">{ai}</p>
-                <p className="text-sm text-slate-600">the AI will run{setupCount > 0 && <span className="block text-xs text-slate-500">after {setupCount} setup re-runs</span>}</p>
-              </div>
-              <button type="button" className="rounded-lg bg-white p-3 text-left ring-1 ring-amber-200 hover:ring-amber-400" onClick={() => setShowList(showList === "NEEDS_HUMAN" ? "" : "NEEDS_HUMAN")}>
-                <p className="text-2xl font-semibold text-amber-800">{human.length}</p>
-                <p className="text-sm text-slate-600">need you {human.length > 0 && <span className="text-xs text-teal-700">(see why)</span>}</p>
-              </button>
-              <button type="button" className="rounded-lg bg-white p-3 text-left ring-1 ring-slate-200 hover:ring-slate-400" onClick={() => setShowList(showList === "NOT_ALLOWED" ? "" : "NOT_ALLOWED")}>
-                <p className="text-2xl font-semibold text-slate-600">{blocked.length}</p>
-                <p className="text-sm text-slate-600">skipped here {blocked.length > 0 && <span className="text-xs text-teal-700">(see why)</span>}</p>
-              </button>
-            </div>
+            <p className="text-sm text-ink-800">
+              The AI will run <strong className="tabular-nums">{ai}</strong> case{ai === 1 ? "" : "s"}
+              {setupCount > 0 && <> after <strong className="tabular-nums">{setupCount}</strong> setup re-run{setupCount === 1 ? "" : "s"}</>}.
+              {human.length > 0 && (
+                <>
+                  {" "}
+                  <button type="button" className="text-accent-700 underline-offset-2 hover:underline" onClick={() => setShowList(showList === "NEEDS_HUMAN" ? "" : "NEEDS_HUMAN")}>
+                    {human.length} need{human.length === 1 ? "s" : ""} you
+                  </button>
+                  .
+                </>
+              )}
+              {blocked.length > 0 && (
+                <>
+                  {" "}
+                  <button type="button" className="text-accent-700 underline-offset-2 hover:underline" onClick={() => setShowList(showList === "NOT_ALLOWED" ? "" : "NOT_ALLOWED")}>
+                    {blocked.length} can&apos;t run here
+                  </button>
+                  .
+                </>
+              )}
+            </p>
             {showList && (
-              <ul className="mt-3 max-h-60 space-y-1 overflow-auto rounded border border-slate-200 bg-white p-2 text-sm">
+              <ul className="mt-3 max-h-60 divide-y divide-slate-100 overflow-auto rounded-md border border-slate-200 text-sm">
                 {(showList === "NEEDS_HUMAN" ? human : blocked).map((p) => (
-                  <li key={p.testCaseId}><strong>{p.externalId}</strong> {p.title} <span className="text-xs text-slate-500">· {p.reason}</span></li>
+                  <li key={p.testCaseId} className="flex gap-2 px-3 py-1.5">
+                    <span className="case-id shrink-0">{p.externalId}</span>
+                    <span className="min-w-0 flex-1">{p.title}<span className="block text-xs text-slate-500">{p.reason}</span></span>
+                  </li>
                 ))}
               </ul>
             )}
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button className="btn-accent px-6 py-2.5 text-base" disabled={busy || !plan.length} onClick={start}>
-                {busy ? "Starting…" : `Start: ${plan.length - setupCount} test${plan.length - setupCount === 1 ? "" : "s"}${setupCount ? ` + ${setupCount} setup` : ""}`}
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button className="btn-primary btn-lg" disabled={busy || !plan.length} onClick={start}>
+                {busy ? "Starting…" : `Start ${tests} test${tests === 1 ? "" : "s"}`}
               </button>
-              <span className="text-xs text-slate-500">Passes the AI proves are recorded automatically. Failures wait for your one-click confirmation.</span>
+              <span className="text-xs text-slate-500">Passes the AI can prove are recorded automatically. Everything else waits in Needs you.</span>
             </div>
           </>
         )}
-      </div>
+      </Step>
     </section>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-[2rem_minmax(0,1fr)]">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs font-semibold text-slate-600" aria-hidden="true">{n}</span>
+      <div>
+        <h2 className="mb-3 text-base font-semibold">{title}</h2>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Choice({ checked, onSelect, title, children }: { checked: boolean; onSelect: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onSelect}
+      className={`rounded-lg border p-3 text-left ${checked ? "border-ink-900 ring-1 ring-ink-900" : "border-slate-300 hover:border-slate-400"}`}
+    >
+      <span className="flex items-center gap-2 font-medium text-ink-900">
+        <span className={`h-3.5 w-3.5 rounded-full border ${checked ? "border-[4px] border-ink-900" : "border-slate-400"}`} aria-hidden="true" />
+        {title}
+      </span>
+      <span className="mt-1 block pl-5.5 text-sm text-slate-600">{children}</span>
+    </button>
+  );
+}
+
+function Check({ checked, onChange, disabled, hint, children }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className={`flex items-start gap-2 text-sm ${disabled ? "text-slate-500" : "text-ink-800"}`}>
+      <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
+      <span>
+        {children}
+        {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+      </span>
+    </label>
   );
 }

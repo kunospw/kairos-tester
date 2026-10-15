@@ -42,14 +42,14 @@ export function EnvironmentManager({
       ) : (
         <table className="table-base mb-4">
           <thead>
-            <tr><th>Name</th><th>Type</th><th>Target URL</th><th>Notes</th><th className="text-right">Cycles</th></tr>
+            <tr><th>Name</th><th>Type</th><th>Target URL</th><th>Notes</th><th className="text-right">Rounds</th></tr>
           </thead>
           <tbody>
             {environments.map((e) => (
               <tr key={e.id}>
                 <td className="font-medium">{e.name}</td>
                 <td className="text-xs">{e.type.toLowerCase()}</td>
-                <td className="text-xs">{e.targetUrl ? <a className="text-teal-700 underline" href={e.targetUrl} target="_blank" rel="noreferrer noopener">{e.targetUrl}</a> : "—"}</td>
+                <td className="text-xs">{e.targetUrl ? <a className="text-accent-700 underline" href={e.targetUrl} target="_blank" rel="noreferrer noopener">{e.targetUrl}</a> : "—"}</td>
                 <td className="text-xs">{e.notes ?? ""}</td>
                 <td className="text-right">{e.cycles}</td>
               </tr>
@@ -67,7 +67,7 @@ export function EnvironmentManager({
         <input className="input" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" />
         <button className="btn-primary" type="submit">Add environment</button>
       </form>
-      <p className="mt-2 text-xs text-slate-500">Target URLs are only shown as links for testers to open the application themselves. Kairos Tester never contacts them.</p>
+      <p className="mt-2 text-xs text-slate-500">The web app never contacts these addresses. Only the AI runner on your computer opens one, and only after you complete its AI setup below.</p>
     </Card>
   );
 }

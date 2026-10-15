@@ -3,7 +3,8 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/client-api";
 import { FormError } from "@/components/form-error";
-import { Alert, Card, LifecycleBadge } from "@/components/ui";
+import { IconPaperclip, IconPass } from "@/components/icons";
+import { Alert, Card, LifecycleBadge, OutcomeIcon } from "@/components/ui";
 import { OUTCOME_LABEL, OUTCOMES_REQUIRING_REASON, type AttemptStatusValue, type OutcomeValue } from "@/lib/domain";
 
 type StepResult = "PASS" | "FAIL" | "BLOCKED" | "NOT_APPLICABLE" | "NOT_RUN";
@@ -26,12 +27,12 @@ export interface OpenAttempt {
   evidence: { id: string; name: string; mimeType: string; sizeBytes: number; caption: string | null }[];
 }
 
-const STEP_OPTIONS: { value: StepResult; label: string; icon: string }[] = [
-  { value: "PASS", label: "Pass", icon: "✓" },
-  { value: "FAIL", label: "Fail", icon: "✕" },
-  { value: "BLOCKED", label: "Blocked", icon: "⊘" },
-  { value: "NOT_APPLICABLE", label: "N/A", icon: "–" },
-  { value: "NOT_RUN", label: "Not done", icon: "○" },
+const STEP_OPTIONS: { value: StepResult; label: string }[] = [
+  { value: "PASS", label: "Pass" },
+  { value: "FAIL", label: "Fail" },
+  { value: "BLOCKED", label: "Blocked" },
+  { value: "NOT_APPLICABLE", label: "N/A" },
+  { value: "NOT_RUN", label: "Not done" },
 ];
 
 const COMPLETE_OUTCOMES: OutcomeValue[] = ["PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"];
@@ -75,7 +76,7 @@ export function ExecutionPanel({
       <Card title="Record a result">
         <FormError error={error} />
         {closed ? (
-          <p className="text-sm text-slate-500">The cycle is closed.</p>
+          <p className="text-sm text-slate-500">The round is closed.</p>
         ) : (
           <div className="space-y-2 text-sm">
             <p className="text-slate-600">
@@ -195,7 +196,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
       title={
         <span className="flex items-center gap-2">
           Attempt {attempt.attemptNumber} <LifecycleBadge status={attempt.status} />
-          {attempt.isSimulated && <span className="text-xs font-normal text-purple-800">(simulation cycle)</span>}
+          {attempt.isSimulated && <span className="text-xs font-normal text-slate-600">(simulation round)</span>}
         </span>
       }
       actions={dirty ? <span className="text-xs text-amber-800">Unsaved changes</span> : undefined}
@@ -215,7 +216,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                 touch();
               }}
             >
-              ✓ Everything worked
+              <IconPass size={14} /> Everything worked
             </button>
             <span className="text-xs text-slate-500">Marks every check Pass and the result Pass. You still click Complete, and can change anything first.</span>
           </div>
@@ -229,7 +230,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                 <li key={s.stepIndex} className="rounded border border-slate-200 p-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="prewrap flex-1 text-sm">
-                      <span className="mr-1 text-slate-400">{i + 1}.</span>
+                      <span className="mr-1 text-slate-500">{i + 1}.</span>
                       {s.text}
                       {!s.required && <span className="ml-1 text-xs text-slate-500">(optional)</span>}
                     </p>
@@ -238,7 +239,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                         <label
                           key={o.value}
                           className={`cursor-pointer rounded border px-1.5 py-0.5 text-xs ${
-                            s.result === o.value ? "border-navy-700 bg-navy-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                            s.result === o.value ? "border-ink-700 bg-ink-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                           }`}
                         >
                           <input
@@ -253,7 +254,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
                               touch();
                             }}
                           />
-                          <span aria-hidden="true">{o.icon}</span> {o.label}
+                          <OutcomeIcon outcome={o.value} size={13} /> {o.label}
                         </label>
                       ))}
                     </div>
@@ -342,7 +343,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
         </details>
 
         {isHybrid && (
-          <div className="rounded border border-purple-300 bg-purple-50 p-3 text-sm text-purple-950">
+          <div className="rounded border border-dashed border-slate-400 bg-slate-50 p-3 text-sm text-ink-800">
             <p className="font-semibold">Hybrid test: human checkpoint required</p>
             <p className="text-xs">Automated actions alone cannot complete this test. Confirm you personally verified the manual checks.</p>
             <label className="mt-2 flex items-center gap-2">
@@ -358,7 +359,7 @@ function AttemptForm({ attempt, hybrid, defaultTester }: { appId: string; attemp
             <ul className="mb-2 space-y-1 text-sm">
               {attempt.evidence.map((e) => (
                 <li key={e.id}>
-                  <a className="text-teal-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">📎 {e.name}</a>{" "}
+                  <a className="text-accent-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer"><IconPaperclip size={13} className="mr-1 inline" />{e.name}</a>{" "}
                   <span className="text-xs text-slate-500">({Math.ceil(e.sizeBytes / 1024)} KB{e.caption ? `, ${e.caption}` : ""})</span>
                 </li>
               ))}

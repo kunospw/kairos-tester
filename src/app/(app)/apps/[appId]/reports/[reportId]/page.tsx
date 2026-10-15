@@ -40,11 +40,11 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
 
       <article className="card space-y-6 p-6 print:border-0 print:p-0">
         <header className="border-b border-slate-200 pb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Test results report</p>
-          <h1 className="mt-1 text-2xl font-semibold text-navy-900">{report.title}</h1>
+          <p className="text-xs font-semibold text-accent-700">Test results report</p>
+          <h1 className="mt-1 text-2xl font-semibold text-ink-900">{report.title}</h1>
           <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
             <div className="flex gap-2"><dt className="text-slate-500">Application</dt><dd className="font-medium">{d.application.name}</dd></div>
-            <div className="flex gap-2"><dt className="text-slate-500">Cycle</dt><dd className="font-medium">{d.cycle.name}</dd></div>
+            <div className="flex gap-2"><dt className="text-slate-500">Round</dt><dd className="font-medium">{d.cycle.name}</dd></div>
             <div className="flex gap-2"><dt className="text-slate-500">Build</dt><dd className="font-medium">{d.cycle.buildLabel ?? "Not recorded"}</dd></div>
             <div className="flex gap-2"><dt className="text-slate-500">Environment</dt><dd className="font-medium">{d.environment ? `${d.environment.name} (${d.environment.type.toLowerCase()})` : "Not recorded"}</dd></div>
             <div className="flex gap-2"><dt className="text-slate-500">Results as of</dt><dd className="font-medium">{formatDateTime(d.generatedAt)}</dd></div>
@@ -53,7 +53,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
         </header>
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-navy-900">Scope</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink-900">Scope</h2>
           <div className="grid gap-4 text-sm sm:grid-cols-2">
             <div><p className="label">Included</p><p className="prewrap">{report.includedScope || "Not stated"}</p></div>
             <div><p className="label">Excluded</p><p className="prewrap">{report.excludedScope || "Not stated"}</p></div>
@@ -61,7 +61,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
         </section>
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-navy-900">Results at a glance</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink-900">Results at a glance</h2>
           <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
             {([
               ["Total", m.total],
@@ -101,7 +101,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
 
         {report.aiSummary && (
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-navy-900">Summary</h2>
+            <h2 className="mb-2 text-lg font-semibold text-ink-900">Summary</h2>
             <p className="prewrap text-sm">{report.aiSummary}</p>
             <p className="mt-1 text-xs text-slate-500">
               Drafted with AI assistance from the recorded results and {report.aiSummaryReviewed ? `reviewed by ${report.aiSummaryReviewedBy}` : "NOT yet human-reviewed"}.
@@ -110,7 +110,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
         )}
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-navy-900">Results by section</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink-900">Results by section</h2>
           <table className="table-base">
             <thead>
               <tr><th>Section</th><th className="text-right">Cases</th><th className="text-right">Pass</th><th className="text-right">Fail</th><th className="text-right">Blocked</th><th className="text-right">Not run</th><th className="text-right">N/A</th></tr>
@@ -137,7 +137,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
         <CaseSection title={`Incomplete coverage flags (${incomplete.length})`} cases={incomplete} empty="None." showFlags />
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-navy-900">Available evidence ({withEvidence.length} cases)</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink-900">Available evidence ({withEvidence.length} cases)</h2>
           {withEvidence.length === 0 ? (
             <p className="text-sm text-slate-500">No evidence files are attached to the reported results.</p>
           ) : (
@@ -148,7 +148,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
                   {c.evidence.map((e, i) => (
                     <span key={e.id}>
                       {i > 0 && ", "}
-                      <a className="text-teal-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">{e.name}</a>
+                      <a className="text-accent-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">{e.name}</a>
                     </span>
                   ))}
                 </li>
@@ -159,7 +159,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
         </section>
 
         <section className="print-break">
-          <h2 className="mb-2 text-lg font-semibold text-navy-900">All cases: expected vs actual</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink-900">All cases: expected vs actual</h2>
           <table className="table-base text-xs">
             <thead>
               <tr><th>ID</th><th>Case</th><th>Result</th><th>Expected</th><th>Actual / notes</th><th>Tested</th></tr>
@@ -201,7 +201,7 @@ export default async function ReportPage({ params }: { params: Promise<{ appId: 
 function CaseSection({ title, cases, empty, detail, showFlags }: { title: string; cases: ReportCase[]; empty: string; detail?: boolean; showFlags?: boolean }) {
   return (
     <section>
-      <h2 className="mb-2 text-lg font-semibold text-navy-900">{title}</h2>
+      <h2 className="mb-2 text-lg font-semibold text-ink-900">{title}</h2>
       {cases.length === 0 ? (
         <p className="text-sm text-slate-500">{empty}</p>
       ) : (

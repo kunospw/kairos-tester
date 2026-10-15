@@ -15,12 +15,14 @@ export default async function LoginPage() {
   }
   if (signedIn) redirect("/");
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-navy-50 to-slate-100 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Kairos Business Solutions</p>
-          <h1 className="mt-1 text-2xl font-semibold text-navy-900">Kairos Tester</h1>
-          <p className="mt-1 text-sm text-slate-500">QA and UAT test management</p>
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-ink-900 text-base font-bold text-white" aria-hidden="true">K</span>
+          <div>
+            <h1 className="text-lg font-semibold leading-tight">Kairos Tester</h1>
+            <p className="text-sm text-slate-500">Sign in to continue testing</p>
+          </div>
         </div>
         <div className="card p-6">
           <LoginForm configured={authConfigured()} dbError={dbError} />

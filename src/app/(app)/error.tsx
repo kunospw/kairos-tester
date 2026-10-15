@@ -10,7 +10,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
           ? "Check that PostgreSQL is running and DATABASE_URL in .env is correct, then try again."
           : "The page could not be displayed. Your saved data is unaffected. Try again, and check the server console for details."}
       </p>
-      {error.digest && <p className="mt-2 text-xs text-slate-400">Reference: {error.digest}</p>}
+      {error.digest && <p className="mt-2 text-xs text-slate-500">Reference: {error.digest}</p>}
       <button className="btn-primary mt-4" onClick={reset}>Try again</button>
     </div>
   );

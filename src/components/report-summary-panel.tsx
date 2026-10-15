@@ -30,7 +30,7 @@ export function ReportSummaryPanel({ appId, reportId, enabled, hasSummary }: { a
 
   return (
     <details className="card">
-      <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-navy-800">
+      <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-ink-800">
         AI summary draft {hasSummary ? "(a reviewed summary is included below)" : "(optional)"}
       </summary>
       <div className="space-y-3 border-t border-slate-200 p-4 text-sm">

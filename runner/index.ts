@@ -4,8 +4,10 @@
 import { createPrismaClient } from "@/server/db";
 import { aiConfig } from "@/server/ai/ollama";
 import { claimNext, discardUndecidedAgentAttempt, failItem, heartbeat } from "@/server/services/run-service";
+import { controlState } from "@/server/services/live-control";
 
 const REQUEUED = "Re-queued after the runner restarted.";
+const BROWSER_REQUEUED = "Re-queued: the browser stopped.";
 /** Abandon a case that makes no progress for this long (e.g. a hung browser). */
 const CASE_TIMEOUT_MS = Number(process.env.RUNNER_CASE_TIMEOUT_MS || 12 * 60_000);
 import { launch } from "./browser";
@@ -51,6 +53,10 @@ async function main() {
   const beat = setInterval(() => heartbeat(db, "idle").catch(() => {}), 5000);
   await heartbeat(db, "idle");
   while (!stopping) {
+    if (!browser.isConnected()) {
+      log("The browser had stopped; starting a new one.");
+      browser = await launch();
+    }
     const item = await claimNext(db);
     if (!item) {
       await new Promise((r) => setTimeout(r, 2000));
@@ -59,11 +65,16 @@ async function main() {
     log(`Running ${item.cycleCase.testCase.externalId}: ${item.cycleCase.caseVersion.title}`);
     try {
       let timer: NodeJS.Timeout | undefined;
+      // Time a person spends pausing or driving the browser doesn't count against the case.
       const watchdog = new Promise<"timeout">((resolve) => {
-        timer = setTimeout(() => resolve("timeout"), CASE_TIMEOUT_MS);
+        let deadline = Date.now() + CASE_TIMEOUT_MS;
+        timer = setInterval(async () => {
+          const st = await controlState(db, item.id).catch(() => null);
+          if (st && (st.pause !== "NONE" || st.takeover !== "NONE")) deadline = Date.now() + CASE_TIMEOUT_MS;
+          if (Date.now() > deadline) resolve("timeout");
+        }, 5000);
       });
-      const outcome = await Promise.race([runItem(db, browser, item, log).then(() => "done" as const), watchdog]);
-      clearTimeout(timer);
+      const outcome = await Promise.race([runItem(db, browser, item, log).then(() => "done" as const), watchdog]).finally(() => clearInterval(timer));
       if (outcome === "timeout") {
         log(`${item.cycleCase.testCase.externalId}: no progress for ${Math.round(CASE_TIMEOUT_MS / 60000)} min, abandoning and restarting the browser.`);
         await browser.close().catch(() => {});
@@ -72,6 +83,18 @@ async function main() {
         if (fresh.status === "RUNNING") await failItem(db, item, fresh.attemptId, "The case made no progress (the browser stopped responding).");
       }
     } catch (e) {
+      if (!browser.isConnected()) {
+        // The browser died (crash, killed): that is not the case's fault. Put it back and carry on.
+        log(`${item.cycleCase.testCase.externalId}: the browser stopped; putting the case back in the queue.`);
+        const fresh = await db.runItem.findUnique({ where: { id: item.id } });
+        if ((fresh?.statusNote ?? "").includes(BROWSER_REQUEUED)) {
+          await failItem(db, item, fresh?.attemptId ?? null, "The browser stopped twice while running this case.").catch(() => {});
+          continue;
+        }
+        if (fresh?.attemptId) await discardUndecidedAgentAttempt(db, fresh.attemptId).catch(() => {});
+        await db.runItem.update({ where: { id: item.id }, data: { status: "QUEUED", attemptId: null, currentStep: null, statusNote: BROWSER_REQUEUED } });
+        continue;
+      }
       log(`Error on ${item.cycleCase.testCase.externalId}: ${(e as Error).message}`);
       await failItem(db, item, item.attemptId, String((e as Error).message).slice(0, 300)).catch(() => {});
     }

@@ -3,13 +3,15 @@ import { aiConfig } from "@/server/ai/ollama";
 import { evidenceDir, maxEvidenceBytes, ALLOWED_EVIDENCE_DESCRIPTION } from "@/server/storage/evidence-storage";
 import { Card, PageHeader } from "@/components/ui";
 import { AiConnectionTest } from "@/components/ai-connection-test";
+import { runnerStatus } from "@/server/services/attention-service";
+import { formatDateTime } from "@/lib/dates";
 
 export const metadata = { title: "Settings & integrations" };
 
 export default async function SettingsPage() {
   const cfg = aiConfig();
   const db = getPrisma();
-  const [evidenceCount, evidenceBytes] = await Promise.all([db.evidence.count(), db.evidence.aggregate({ _sum: { sizeBytes: true } })]);
+  const [evidenceCount, evidenceBytes, runner] = await Promise.all([db.evidence.count(), db.evidence.aggregate({ _sum: { sizeBytes: true } }), runnerStatus(db)]);
   return (
     <div className="space-y-5">
       <PageHeader title="Settings & integrations" subtitle="Configuration is read from .env on the server. Secrets are never shown here." />
@@ -24,13 +26,15 @@ export default async function SettingsPage() {
           <div className="mt-3"><AiConnectionTest enabled={cfg.keyConfigured} /></div>
           <p className="mt-2 text-xs text-slate-500">Change OLLAMA_API_KEY, OLLAMA_CHAT_URL and OLLAMA_MODEL in .env, then restart. Manual testing works without AI.</p>
         </Card>
-        <Card title="Automation runner">
-          <p className="text-sm">Status: <strong>Not connected</strong></p>
-          <p className="mt-1 text-sm text-slate-600">
-            No runner is registered, so automated execution is disabled everywhere with that reason. Cases can store automation references (runner type, external test ID, script
-            reference) for a future local Playwright runner. Arbitrary uploaded scripts are never executed.
+        <Card title="AI runner">
+          <p className="text-sm">
+            Status: <strong>{runner.online ? "● Running" : "○ Not running"}</strong>
+            {runner.lastSeenAt && <span className="text-xs text-slate-500"> · last seen {formatDateTime(runner.lastSeenAt)}</span>}
           </p>
-          <p className="mt-2 text-xs text-slate-500">The planned job/result/evidence/heartbeat interface is documented in docs/runner-interface.md.</p>
+          <p className="mt-1 text-sm text-slate-600">
+            The local runner drives the browser for AI test runs. Start it in a second terminal in the project folder with <code>npm run runner</code>. It only opens
+            localhost addresses and never executes uploaded scripts.
+          </p>
         </Card>
         <Card title="Evidence storage">
           <dl className="grid grid-cols-3 gap-y-1 text-sm">

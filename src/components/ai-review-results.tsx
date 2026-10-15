@@ -72,11 +72,11 @@ export function AiReviewResults({
       <div className="space-y-3">
         <FormError error={error} />
         {cycles.length === 0 ? (
-          <p className="text-sm text-slate-500">No real cycles yet. Import or execute tests first.</p>
+          <p className="text-sm text-slate-500">No real rounds yet. Import or execute tests first.</p>
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              <select className="input w-auto" value={cycleId ?? ""} onChange={(e) => router.push(`${path}?cycle=${e.target.value}`)} aria-label="Cycle to review">
+              <select className="input w-auto" value={cycleId ?? ""} onChange={(e) => router.push(`${path}?cycle=${e.target.value}`)} aria-label="Round to review">
                 {cycles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <select className="input w-auto" value={section} onChange={(e) => setSection(e.target.value)} aria-label="Section">

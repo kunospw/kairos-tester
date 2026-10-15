@@ -16,8 +16,8 @@ src/generated/
 .env.*
 !.env.example
 
-# evidence uploads, backups and local data
-storage/
+# evidence uploads, backups and local data (root folder only: src/server/storage is source code)
+/storage/
 backups/
 *.dump
 *.sql.gz

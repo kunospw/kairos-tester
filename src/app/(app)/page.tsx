@@ -1,58 +1,49 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getPrisma } from "@/server/db";
 import { EmptyState, PageHeader } from "@/components/ui";
 import { CreateApplication } from "@/components/create-application";
+import { formatDateTime } from "@/lib/dates";
 
 export const metadata = { title: "Applications" };
 
-export default async function ApplicationsPage() {
+export default async function ApplicationsPage({ searchParams }: { searchParams: Promise<{ all?: string; new?: string }> }) {
+  const { all, new: openNew } = await searchParams;
   const db = getPrisma();
   const apps = await db.application.findMany({
     orderBy: { name: "asc" },
     include: {
-      _count: { select: { cases: true, cycles: true, environments: true } },
-      cycles: { where: { kind: { not: "SIMULATION" } }, orderBy: { createdAt: "desc" }, take: 1 },
+      _count: { select: { cases: { where: { archived: false } } } },
+      cycles: { where: { kind: { not: "SIMULATION" } }, orderBy: { createdAt: "desc" }, take: 1, select: { name: true, createdAt: true } },
     },
   });
+  // Most people test one application: skip the list and go straight to it.
+  if (apps.length === 1 && !all) redirect(`/apps/${apps[0].id}`);
+
   return (
-    <>
-      <PageHeader
-        title="Applications"
-        subtitle="Each application under test has its own cases, cycles, environments, context and reports."
-        actions={<CreateApplication />}
-      />
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="Applications" subtitle="Each application has its own test cases, environments, results and reports." actions={apps.length > 0 && <CreateApplication defaultOpen={Boolean(openNew)} />} />
       {apps.length === 0 ? (
-        <EmptyState title="No applications yet" action={<CreateApplication primary />}>
-          Add the application you are testing (for example KFastTrack), then import its checklist or create cases.
+        <EmptyState title="Add the application you test" action={<CreateApplication primary defaultOpen={Boolean(openNew)} />}>
+          For example KFastTrack. Next you import its checklist and tell the AI how to sign in.
         </EmptyState>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200">
           {apps.map((a) => (
-            <Link key={a.id} href={`/apps/${a.id}`} className="card block p-4 transition hover:border-teal-500 hover:shadow">
-              <h2 className="font-semibold text-navy-900">{a.name}</h2>
-              {a.description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{a.description}</p>}
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-slate-500">
-                <div className="rounded bg-slate-50 py-1.5">
-                  <dt>Cases</dt>
-                  <dd className="text-base font-semibold text-slate-800">{a._count.cases}</dd>
-                </div>
-                <div className="rounded bg-slate-50 py-1.5">
-                  <dt>Cycles</dt>
-                  <dd className="text-base font-semibold text-slate-800">{a._count.cycles}</dd>
-                </div>
-                <div className="rounded bg-slate-50 py-1.5">
-                  <dt>Environments</dt>
-                  <dd className="text-base font-semibold text-slate-800">{a._count.environments}</dd>
-                </div>
-              </dl>
-              <p className="mt-3 text-xs text-slate-500">
-                Latest cycle:{" "}
-                {a.cycles[0] ? <span className="font-medium text-slate-700">{a.cycles[0].name}</span> : "none"}
-              </p>
-            </Link>
+            <li key={a.id}>
+              <Link href={`/apps/${a.id}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-slate-50">
+                <span className="min-w-0">
+                  <span className="font-medium text-ink-900">{a.name}</span>
+                  {a.description && <span className="ml-2 text-sm text-slate-500">{a.description}</span>}
+                </span>
+                <span className="text-xs text-slate-500 tabular-nums">
+                  {a._count.cases} cases · {a.cycles[0] ? `last round ${a.cycles[0].name}, ${formatDateTime(a.cycles[0].createdAt)}` : "no results yet"}
+                </span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </>
+    </div>
   );
 }

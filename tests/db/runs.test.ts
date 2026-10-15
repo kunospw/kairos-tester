@@ -7,12 +7,16 @@ import {
   finishAgentAttempt,
   answerRequest,
   runView,
-  unmetDependency,
+  waitForPrerequisites,
+  askAndWait,
+  parkItem,
+  previousAnswers,
   failItem,
 } from "@/server/services/run-service";
 import { addEvidence } from "@/server/services/evidence-service";
 import { completeAttempt, startOrResumeAttempt } from "@/server/services/execution-service";
 import { loadCycleResults } from "@/server/services/results";
+import { attentionCounts, inbox } from "@/server/services/attention-service";
 
 const db = testDb();
 afterAll(() => db.$disconnect());
@@ -107,16 +111,118 @@ describe("AI runs", () => {
     expect(after.requests.every((r) => r.status === "ANSWERED")).toBe(true);
   });
 
-  it("skips a case whose dependency did not pass in this run", async () => {
+  it("closes the run's confirm request when the result is decided in the Needs-you inbox", async () => {
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
+    const { item, attempt } = await claimAndFinish({ ...pass, verdict: "FAIL", summary: "Error 500.", checks: [{ ...pass.checks[0], passed: false, detail: "not found" }], steps: undefined as never });
+    const req = await db.humanRequest.findFirstOrThrow({ where: { kind: "CONFIRM_RESULT" } });
+    // Inbox decision goes through the attempt, not the request.
+    await completeAttempt(db, attempt.id, { outcome: "FAIL", outcomeReason: "Reproduced", humanCheckpointConfirmed: true }, "dyah");
+    expect((await db.humanRequest.findUniqueOrThrow({ where: { id: req.id } })).status).toBe("ANSWERED");
+    expect((await db.runItem.findUniqueOrThrow({ where: { id: item.id } })).status).toBe("DONE");
+    // The run page card is gone, and answering it from a stale page is refused cleanly.
+    await expect(answerRequest(db, appId, req.id, { action: "confirm" }, "dyah")).rejects.toThrow(/already answered/);
+  });
+
+  it("counts each thing that needs a person once, and forgets it once decided", async () => {
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
+    // Two cases need a person from the start (Cloud2, real inbox).
+    expect(await attentionCounts(db, appId)).toMatchObject({ needsYou: 2, questions: 2, reviews: 0 });
+
+    // An AI result to confirm shows once (as a review), not also as its CONFIRM_RESULT request.
+    const { attempt } = await claimAndFinish({ ...pass, checks: [], steps: undefined as never });
+    expect(await attentionCounts(db, appId)).toMatchObject({ needsYou: 3, questions: 2, reviews: 1 });
+
+    // A case the AI could not finish shows once, as its request.
+    const next = (await claimNext(db))!;
+    const stuck = await openAgentAttempt(db, next, "Kairos AI (test)");
+    await failItem(db, next, stuck.id, "stuck");
+    const box = await inbox(db, appId);
+    expect(box.requests.map((r) => r.kind).sort()).toEqual(["MANUAL_CASE", "MANUAL_CASE", "RUN_ERROR"]);
+    expect(box.reviews.map((a) => a.id)).toEqual([attempt.id]);
+
+    await completeAttempt(db, attempt.id, { outcome: "PASS", humanCheckpointConfirmed: true }, "dyah");
+    expect(await attentionCounts(db, appId)).toMatchObject({ needsYou: 3, questions: 3, reviews: 0 });
+  });
+
+  it("does not ask anyone about setup re-runs", async () => {
+    const hist = await db.testCycle.findFirstOrThrow({ where: { applicationId: appId, kind: "HISTORICAL_IMPORT" } });
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "continue_cycle", cycleId: hist.id, includeBlocked: false, includeFailed: false, withSetup: true } }, "dyah");
+    const { item } = await claimAndFinish({ ...pass, checks: [], steps: undefined as never });
+    expect(item.purpose).toBe("SETUP");
+    expect((await db.executionAttempt.findFirstOrThrow({ where: { runItems: { some: { id: item.id } } } })).status).toBe("AWAITING_REVIEW");
+    expect((await attentionCounts(db, appId)).reviews).toBe(0);
+  });
+
+  it("parks a case whose prerequisite hasn't passed, then starts it by itself when it does", async () => {
     await db.testCaseVersion.updateMany({ where: { testCase: { externalId: "SI-03" } }, data: { preconditions: "SI-01 done." } });
     await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
-    const si01 = (await claimNext(db))!;
+    // SI-01 gets an uncertain pass that waits for a person.
+    const { item: si01 } = await claimAndFinish({ ...pass, checks: [], steps: undefined as never });
     expect(si01.cycleCase.testCase.externalId).toBe("SI-01");
-    const att = await openAgentAttempt(db, si01, "ai");
-    await failItem(db, si01, att.id, "stuck");
+
     const si03 = (await claimNext(db))!;
     expect(si03.cycleCase.testCase.externalId).toBe("SI-03");
-    expect(await unmetDependency(db, si03)).toMatch(/Depends on SI-01/);
+    expect(await waitForPrerequisites(db, si03)).toMatch(/Waits for SI-01/);
+    expect((await db.runItem.findUniqueOrThrow({ where: { id: si03.id } })).status).toBe("WAITING");
+    // Not skipped, and not a result.
+    expect(await db.executionAttempt.count({ where: { cycleCaseId: si03.cycleCaseId } })).toBe(0);
+
+    // The person confirms SI-01 passed: SI-03 goes back in the queue by itself.
+    const req = await db.humanRequest.findFirstOrThrow({ where: { kind: "CONFIRM_RESULT" } });
+    await answerRequest(db, appId, req.id, { action: "override_pass" }, "dyah");
+    expect((await db.runItem.findUniqueOrThrow({ where: { id: si03.id } })).status).toBe("QUEUED");
+  });
+
+  it("asks a person when a prerequisite failed, and runs the case anyway if they say so", async () => {
+    await db.testCaseVersion.updateMany({ where: { testCase: { externalId: "SI-03" } }, data: { preconditions: "SI-01 done." } });
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
+    await claimAndFinish({ ...pass, verdict: "FAIL", summary: "Error 500.", checks: [{ ...pass.checks[0], passed: false, detail: "x" }], steps: undefined as never });
+    const si03 = (await claimNext(db))!;
+    await waitForPrerequisites(db, si03);
+
+    const confirm = await db.humanRequest.findFirstOrThrow({ where: { kind: "CONFIRM_RESULT" } });
+    await answerRequest(db, appId, confirm.id, { action: "confirm" }, "dyah");
+    const ask = await db.humanRequest.findFirstOrThrow({ where: { runItemId: si03.id, status: "OPEN" } });
+    expect(ask.question).toMatch(/SI-03 waits for SI-01, which did not pass/);
+
+    await answerRequest(db, appId, ask.id, { action: "recheck" }, "dyah");
+    const again = (await claimNext(db))!;
+    expect(again.id).toBe(si03.id);
+    expect(await waitForPrerequisites(db, again)).toBeNull();
+  });
+
+  it("re-tests a failure after the person says it is fixed, keeping the failure in the history", async () => {
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
+    const { item, attempt } = await claimAndFinish({ ...pass, verdict: "FAIL", summary: "Error 500.", checks: [{ ...pass.checks[0], passed: false, detail: "x" }], steps: undefined as never });
+    const req = await db.humanRequest.findFirstOrThrow({ where: { kind: "CONFIRM_RESULT" } });
+    await answerRequest(db, appId, req.id, { action: "recheck", text: "Fixed in 1.4.3" }, "dyah");
+
+    expect(await db.executionAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).toMatchObject({ status: "COMPLETED", outcome: "FAIL" });
+    expect((await db.runItem.findUniqueOrThrow({ where: { id: item.id } })).status).toBe("QUEUED");
+    // The AI revisits it next and hears what the person said.
+    const next = (await claimNext(db))!;
+    expect(next.id).toBe(item.id);
+    expect((await previousAnswers(db, item.id))[0].answer).toMatch(/Fixed in 1\.4\.3/);
+    const retest = await openAgentAttempt(db, next, "ai");
+    expect(retest.attemptNumber).toBe(attempt.attemptNumber + 1);
+  });
+
+  it("parks an unanswered question without recording a result, and revisits after the answer", async () => {
+    await startRun(db, appId, { environmentId: envId, scope: { mode: "all" } }, "dyah");
+    const item = (await claimNext(db))!;
+    const attempt = await openAgentAttempt(db, item, "ai");
+    expect((await askAndWait(db, item, "Which customer should I use?", 50)).status).toBe("timeout");
+    await parkItem(db, item, attempt.id, "Which customer should I use?");
+    expect(await db.executionAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).toMatchObject({ status: "RUNNING", outcome: null });
+    expect((await loadCycleResults(db, item.cycleCase.cycleId)).rows.find((r) => r.cycleCaseId === item.cycleCaseId)!.outcome).toBe("NOT_RUN");
+
+    // The run moves on to the next case.
+    expect((await claimNext(db))!.id).not.toBe(item.id);
+
+    const q = await db.humanRequest.findFirstOrThrow({ where: { kind: "INPUT" } });
+    await answerRequest(db, appId, q.id, { action: "answer", text: "Acme" }, "dyah");
+    expect((await db.runItem.findUniqueOrThrow({ where: { id: item.id } })).status).toBe("QUEUED");
+    expect(await db.executionAttempt.findUnique({ where: { id: attempt.id } })).toBeNull();
   });
 
   it("continues an imported round: only unfinished cases, results added to the same cycle", async () => {

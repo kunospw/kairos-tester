@@ -48,9 +48,8 @@ export function AutomationBindingForm({ appId, caseId, binding }: { appId: strin
 
   return (
     <div className="space-y-2 text-sm">
-      <p className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">
-        Runner status: <strong>Not connected</strong>. Automated execution is disabled in this version: no runner is registered, and a written case is
-        not executable without a reviewed script.
+      <p className="text-xs text-slate-500">
+        Optional. A reference to a reviewed script (for example a Playwright spec) for this case. The AI runner tests cases without one.
       </p>
       <FormError error={error} />
       {!editing ? (

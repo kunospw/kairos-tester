@@ -38,17 +38,17 @@ export default async function CyclesPage({ params }: { params: Promise<{ appId: 
 
   return (
     <>
-      <PageHeader title="Test cycles" subtitle="A cycle is one round of testing against a specific environment and build. New cycles start with every case Not run." actions={create} />
+      <PageHeader title="Test rounds" subtitle="A round is one pass through your test cases on one environment and build. New rounds start with every case Not run." actions={create} />
       {cycles.length === 0 ? (
-        <EmptyState title="No cycles yet" action={create}>
-          {cases.length ? "Create a cycle to start recording results." : "Import or create test cases first."}
+        <EmptyState title="No rounds yet" action={create}>
+          {cases.length ? "Create a round to start recording results." : "Import or create test cases first."}
         </EmptyState>
       ) : (
         <div className="card overflow-x-auto">
           <table className="table-base">
             <thead>
               <tr>
-                <th>Cycle</th>
+                <th>Round</th>
                 <th>Type</th>
                 <th>Environment</th>
                 <th>Build</th>
@@ -66,9 +66,9 @@ export default async function CyclesPage({ params }: { params: Promise<{ appId: 
               {cycles.map((c, i) => {
                 const m = summaries[i].metrics;
                 return (
-                  <tr key={c.id} className={c.kind === "SIMULATION" ? "bg-purple-50/50" : ""}>
+                  <tr key={c.id} className={c.kind === "SIMULATION" ? "bg-slate-50" : ""}>
                     <td className="font-medium">
-                      <Link className="text-teal-700 hover:underline" href={`/apps/${appId}/cycles/${c.id}`}>{c.name}</Link>
+                      <Link className="text-accent-700 hover:underline" href={`/apps/${appId}/cycles/${c.id}`}>{c.name}</Link>
                     </td>
                     <td className="text-xs">{CYCLE_KIND_LABEL[c.kind]}</td>
                     <td className="text-xs">{c.environment?.name ?? "not recorded"}</td>

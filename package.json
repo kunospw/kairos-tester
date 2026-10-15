@@ -17,7 +17,8 @@
     "hash-password": "node scripts/hash-password.mjs",
     "smoke": "node scripts/smoke.mjs",
     "postinstall": "prisma generate",
-    "runner": "tsx --conditions=react-server --env-file=.env runner/index.ts"
+    "runner": "tsx --conditions=react-server --env-file=.env runner/index.ts",
+    "a11y": "node scripts/a11y-scan.mjs"
   },
   "engines": {
     "node": ">=20.19"
@@ -37,6 +38,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.2",
     "@types/papaparse": "5.5.2",
