@@ -6,6 +6,7 @@ import path from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import { accountForRole, isAllowedUrl, type AgentProfile } from "@/lib/agent-profile";
 import type { AgentAction, CheckRecord } from "@/lib/agent-protocol";
+import type { LiveInputEvent } from "@/server/services/live-control";
 
 /** Buttons/links that remove, delete, archive or reset something. */
 const DESTRUCTIVE_CONTROL = /\b(delete|remove|archive|purge|wipe|reset|deactivate|revoke|unassign)\b/i;
@@ -76,6 +77,35 @@ export class Session {
       await cdp.send("Page.startScreencast", { format: "jpeg", quality: 60, maxWidth: 1366, maxHeight: 900, everyNthFrame: 2 });
     } catch {
       /* the live view is optional; the run carries on without it */
+    }
+  }
+
+  /** Apply one click/key/scroll from a person driving the live view. Network guards still apply. */
+  async applyInput(e: LiveInputEvent) {
+    switch (e.kind) {
+      case "click":
+        if (e.double) await this.page.mouse.dblclick(e.x, e.y);
+        else await this.page.mouse.click(e.x, e.y);
+        break;
+      case "type":
+        await this.page.keyboard.type(e.text, { delay: 10 });
+        break;
+      case "key":
+        await this.page.keyboard.press(e.key);
+        break;
+      case "scroll":
+        await this.page.mouse.wheel(0, e.dy);
+        break;
+    }
+  }
+
+  /** Push one small JPEG of the page now. The screencast alone goes quiet after navigations and screenshots. */
+  async pushFrame() {
+    if (!this.onFrame || !this.page || this.page.url() === "about:blank") return;
+    try {
+      this.onFrame(await this.page.screenshot({ type: "jpeg", quality: 60, timeout: 3000 }));
+    } catch {
+      /* best effort */
     }
   }
 

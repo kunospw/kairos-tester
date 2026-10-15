@@ -400,6 +400,7 @@ export async function runView(db: Db, applicationId: string, runId: string) {
       status: it.status,
       statusNote: it.statusNote,
       currentStep: it.currentStep,
+      takeover: it.takeover,
       lastShotId: it.lastShotId,
       result,
       proposed: a?.proposedOutcome ?? null,
@@ -670,6 +671,8 @@ export interface AgentFinish {
   steps: StepRecord[];
   screenshots: number;
   partialNote?: string | null;
+  /** A person used the browser during this case: never record the result without them. */
+  humanTouched?: boolean;
 }
 
 export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: string, f: AgentFinish) {
@@ -679,7 +682,7 @@ export async function finishAgentAttempt(db: Db, item: ClaimedItem, attemptId: s
   }
   const checksText = f.checks.map((c) => `${c.passed ? "✓" : "✕"} ${c.description} (${c.detail})`).join("\n");
   const setupDone = item.purpose === "SETUP" && f.verdict === "PASS" && f.checks.length > 0 && f.checks.every((c) => c.passed);
-  const decision = setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
+  const decision = f.humanTouched && !setupDone ? ({ kind: "CONFIRM", proposed: f.verdict, why: "A person used the browser during this run, so please confirm the result." } as const) : setupDone ? ({ kind: "AUTO_PASS" } as const) : decide({
     verdict: f.verdict,
     confidence: f.confidence,
     checks: f.checks,

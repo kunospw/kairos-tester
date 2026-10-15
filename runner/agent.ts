@@ -9,6 +9,7 @@ import { parseProfile } from "@/lib/agent-profile";
 import { addEvidence } from "@/server/services/evidence-service";
 import { askAndWait, finishAgentAttempt, failItem, openAgentAttempt, parkItem, previousAnswers, progress, publishFrame, waitForPrerequisites, type ClaimedItem } from "@/server/services/run-service";
 import { ACTIONS_PREFIX, pickRecipe } from "@/lib/recipes";
+import { activateTakeover, endTakeover, takePendingInputs, takeoverState } from "@/server/services/live-control";
 import { Session } from "./browser";
 
 const MAX_TURNS = Number(process.env.RUNNER_MAX_ACTIONS || 30);
@@ -98,7 +99,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
   const answers = await previousAnswers(db, item.id);
   const answersText = answers.map((r) => `Q: ${r.question}\nA: ${r.answer}`).join("\n");
   const session = new Session(browser, profile, [v.title, v.preconditions, v.stepsText, v.expectedResult].filter(Boolean).join("\n"));
-  // Live view: keep only the newest frame and write it at most every 800 ms.
+  // Live view: keep only the newest frame and write it at most every 400 ms.
   let frame: Buffer | null = null;
   session.onFrame = (jpeg) => {
     frame = jpeg;
@@ -108,7 +109,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     const f = frame;
     frame = null;
     publishFrame(db, item.id, f).catch(() => {});
-  }, 800);
+  }, 400);
   try {
     await session.open();
   } catch (e) {
@@ -138,7 +139,33 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
       steps: stepRecords,
       screenshots: shots,
       partialNote,
+      humanTouched,
     });
+  };
+
+  let humanTouched = false;
+  const MAX_TAKEOVER_MS = 10 * 60_000;
+
+  /** While a person drives from the live view the AI waits; their inputs are applied here. */
+  const letPersonDrive = async () => {
+    humanTouched = true;
+    await activateTakeover(db, item.id);
+    await db.runEvent.create({ data: { runId: item.runId, runItemId: item.id, message: `${ext}: a person took over the browser.` } });
+    const until = Date.now() + MAX_TAKEOVER_MS;
+    while (Date.now() < until) {
+      if ((await takeoverState(db, item.id)) !== "ACTIVE") break;
+      for (const input of await takePendingInputs(db, item.id)) {
+        await session.applyInput(input).catch(() => {});
+        await session.page.waitForTimeout(150);
+      }
+      await session.pushFrame();
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    await endTakeover(db, item.id);
+    await session.settle();
+    history.push("A person drove the browser for a while and gave it back. The page may be different now; look at the snapshot before acting.");
+    partialNote = partialNote ?? "A person used the browser during this case, so the AI result needs a person's confirmation.";
+    await progress(db, item.id, "The AI has the browser back", item.runId);
   };
 
   /** Run a reviewed recipe step (same browser guards as AI actions). Returns the outcome text. */
@@ -165,6 +192,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
           await progress(db, item.id, `Recipe "${recipe.name}": ${describe(step)}`, item.runId);
           const r = await doStep(step);
           history.push(`recipe ${i + 1}/${recipe.steps.length} ${JSON.stringify(step)} -> ${r}`);
+          await session.pushFrame();
           if (/^(REFUSED|Refused|Unknown role|Not a browser action)/.test(r)) {
             failedAt = `step ${i + 1} (${describe(step)}): ${r}`;
             break;
@@ -199,6 +227,7 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
     }
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
+      if ((await takeoverState(db, item.id)) === "REQUESTED") await letPersonDrive();
       const snapshot = await session.snapshot();
       const left = MAX_TURNS - turn;
       const checksSoFar = checks.map((c) => `${c.passed ? "PASSED" : "FAILED"}: ${c.description}`).join("\n");
@@ -305,6 +334,7 @@ Next action?`;
             steps: stepRecords,
             screenshots: shots,
             partialNote,
+            humanTouched,
           });
           return;
         } else result = await session.perform(a);
@@ -312,6 +342,7 @@ Next action?`;
         if (a.type === "finish") throw e; // could not record the result: stop this case
         result = `ERROR: ${String((e as Error).message).split("\n")[0].slice(0, 200)}`;
       }
+      await session.pushFrame();
       history.push(`#${turn} ${JSON.stringify(a)} -> ${result}`);
     }
     await finishStuck(`it used all ${MAX_TURNS} actions.`);

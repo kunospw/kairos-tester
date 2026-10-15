@@ -1,4 +1,5 @@
 "use client";
+import { Gallery } from "@/components/image-gallery";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -80,15 +81,7 @@ export function AskCard({
         </p>
       )}
       {req.kind === "CONFIRM_RESULT" && shots.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {shots.map((e) => (
-            <a key={e.id} href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer" className="block w-44 overflow-hidden rounded-md border border-slate-200 hover:border-slate-400">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/evidence/${e.id}`} alt={e.caption ?? "screenshot"} className="h-28 w-full object-cover object-top" loading="lazy" />
-              <span className="block truncate px-1.5 py-0.5 text-xs text-slate-600">{e.caption}</span>
-            </a>
-          ))}
-        </div>
+        <Gallery className="mt-3 flex flex-wrap gap-2" images={shots} maxThumbs={3} thumbClass="w-44" imgClass="h-28" />
       )}
       <FormError error={error} />
 

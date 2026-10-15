@@ -1,4 +1,5 @@
 "use client";
+import { Gallery } from "@/components/image-gallery";
 import { RecipeDraftButton } from "@/components/recipe-draft-button";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -148,7 +149,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
                     req={req}
                     manualHref={`/apps/${appId}/cycles/${item.cycleId ?? v.cycle.id}/run/${item.cycleCaseId}`}
                     expected={item.expected}
-                    shots={item.evidence.filter((e) => e.mimeType.startsWith("image/")).slice(-3)}
+                    shots={item.evidence.filter((e) => e.mimeType.startsWith("image/"))}
                     onDone={refresh}
                   />
                 ))}
@@ -180,15 +181,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
                       {it.summary && <p><span className="text-slate-500">What the AI saw:</span> {it.summary}</p>}
                       {it.expected && <p><span className="text-slate-500">Expected:</span> {it.expected}</p>}
                       {it.evidence.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {it.evidence.filter((e) => e.mimeType.startsWith("image/")).map((e) => (
-                            <a key={e.id} href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer" className="block w-36 overflow-hidden rounded-md border border-slate-200 bg-white hover:border-slate-400">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={`/api/evidence/${e.id}`} alt={e.caption ?? "screenshot"} className="h-20 w-full object-cover object-top" loading="lazy" />
-                              <span className="block truncate px-1 text-xs text-slate-600">{e.caption}</span>
-                            </a>
-                          ))}
-                        </div>
+                        <Gallery images={it.evidence.filter((e) => e.mimeType.startsWith("image/"))} thumbClass="w-36" imgClass="h-20" />
                       )}
                       <div className="flex flex-wrap items-center gap-3">
                         <Link className="text-xs text-accent-700 hover:underline" href={`/apps/${appId}/cycles/${it.cycleId}/run/${it.cycleCaseId}`}>Open the case result</Link>
@@ -216,7 +209,7 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
         </div>
 
         <aside className="xl:sticky xl:top-6 xl:self-start">
-          <LiveView appId={appId} runId={v.id} live={!finished} runnerOnline={v.runnerOnline} running={running} />
+          <LiveView appId={appId} runId={v.id} live={!finished} runnerOnline={v.runnerOnline} running={running} onRefresh={refresh} />
         </aside>
       </div>
     </div>
@@ -224,13 +217,25 @@ export function LiveRun({ appId, initial }: { appId: string; initial: View }) {
 }
 
 /**
- * The application under test as the AI sees it, beside the run. Frames come from the
- * runner's own browser (Chrome screencast), refreshed about once a second.
+ * The application under test beside the run. Frames come from the runner's own browser.
+ * "Take control" pauses the AI; clicks and typing here are sent to that browser until you give it back.
  */
-function LiveView({ appId, runId, live, runnerOnline, running }: { appId: string; runId: string; live: boolean; runnerOnline: boolean; running: Item | null }) {
+const VIEWPORT = { width: 1366, height: 900 };
+const SPECIAL_KEYS = new Set(["Enter", "Backspace", "Tab", "Escape", "Delete", "Home", "End", "PageUp", "PageDown", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+type Input = { kind: "click"; x: number; y: number; double?: boolean } | { kind: "type"; text: string } | { kind: "key"; key: string } | { kind: "scroll"; dy: number };
+
+function LiveView({ appId, runId, live, runnerOnline, running, onRefresh }: { appId: string; runId: string; live: boolean; runnerOnline: boolean; running: Item | null; onRefresh: () => Promise<void> }) {
   const [src, setSrc] = useState<string | null>(null);
   const [fresh, setFresh] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [asking, setAsking] = useState(false);
   const last = useRef<string | null>(null);
+  const queue = useRef<Input[]>([]);
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const itemRef = useRef<string | null>(null);
+  const takeover = running?.takeover ?? "NONE";
+  const driving = takeover === "ACTIVE";
+  itemRef.current = running?.id ?? null;
 
   useEffect(() => {
     if (!live) {
@@ -257,20 +262,79 @@ function LiveView({ appId, runId, live, runnerOnline, running }: { appId: string
       }
     };
     void tick();
-    const t = setInterval(tick, 1000);
+    const t = setInterval(tick, takeover === "NONE" ? 1000 : 400);
     return () => {
       stop = true;
       clearInterval(t);
     };
-  }, [appId, runId, live]);
+  }, [appId, runId, live, takeover]);
   useEffect(() => () => {
     if (last.current) URL.revokeObjectURL(last.current);
   }, []);
+  // While asking for or holding control, keep the run state fresh so the buttons follow the runner.
+  useEffect(() => {
+    if (takeover === "NONE") return;
+    const t = setInterval(() => void onRefresh(), 1000);
+    return () => clearInterval(t);
+  }, [takeover, onRefresh]);
+
+  async function control(action: "take" | "give_back") {
+    if (!running) return;
+    setAsking(true);
+    setError(null);
+    try {
+      queue.current = [];
+      await apiFetch(`/api/apps/${appId}/runs/${runId}/control`, { method: "POST", json: { itemId: running.id, action } });
+      await onRefresh();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  async function flush() {
+    flushTimer.current = null;
+    const events = queue.current.splice(0, 20);
+    if (!events.length || !itemRef.current) return;
+    try {
+      await apiFetch(`/api/apps/${appId}/runs/${runId}/input`, { method: "POST", json: { itemId: itemRef.current, events } });
+    } catch (e) {
+      setError(e);
+    }
+    if (queue.current.length) flushTimer.current = setTimeout(flush, 100);
+  }
+  function send(e: Input) {
+    const q = queue.current;
+    const prev = q[q.length - 1];
+    if (e.kind === "type" && prev?.kind === "type" && prev.text.length < 150) prev.text += e.text;
+    else q.push(e);
+    if (!flushTimer.current) flushTimer.current = setTimeout(flush, 120);
+  }
+
+  function onClick(ev: React.MouseEvent<HTMLDivElement>, double = false) {
+    if (!driving) return;
+    const r = ev.currentTarget.getBoundingClientRect();
+    const x = ((ev.clientX - r.left) / r.width) * VIEWPORT.width;
+    const y = ((ev.clientY - r.top) / r.height) * VIEWPORT.height;
+    ev.currentTarget.focus();
+    send({ kind: "click", x: Math.round(x), y: Math.round(y), ...(double ? { double: true } : {}) });
+  }
+  function onKeyDown(ev: React.KeyboardEvent<HTMLDivElement>) {
+    if (!driving || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key.length === 1) {
+      ev.preventDefault();
+      send({ kind: "type", text: ev.key });
+    } else if (SPECIAL_KEYS.has(ev.key)) {
+      ev.preventDefault();
+      send({ kind: "key", key: ev.key });
+    }
+  }
 
   const caption = running ? (
     <>
       <span className="case-id">{running.externalId}</span> <span className="text-ink-800">{running.title}</span>
-      <span className="block truncate text-xs text-slate-500">{running.currentStep ?? "Starting…"}</span>
+      <span className="block truncate text-xs text-slate-500">{driving ? "You are driving the browser" : running.currentStep ?? "Starting…"}</span>
     </>
   ) : live ? (
     <span className="text-slate-500">{runnerOnline ? "Between cases" : "The AI runner is stopped"}</span>
@@ -280,17 +344,41 @@ function LiveView({ appId, runId, live, runnerOnline, running }: { appId: string
 
   return (
     <section aria-label="Live view of the application under test" className="overflow-hidden rounded-lg border border-slate-200">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <h2 className="text-sm font-semibold">Live view</h2>
-        <span className={`flex items-center gap-1.5 text-xs ${fresh ? "text-ink-900" : "text-slate-500"}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${fresh ? "bg-red-600" : "bg-slate-300"}`} aria-hidden="true" />
-          {fresh ? "Live" : "Not streaming"}
-        </span>
+        <div className="flex items-center gap-3">
+          {live && running && takeover === "NONE" && (
+            <button className="btn-secondary !px-2.5 !py-1 text-xs" disabled={asking} onClick={() => control("take")}>Take control</button>
+          )}
+          {takeover === "REQUESTED" && (
+            <span className="flex items-center gap-2 text-xs text-slate-600">
+              Waiting for the AI to finish its current step…
+              <button className="underline" onClick={() => control("give_back")}>Cancel</button>
+            </span>
+          )}
+          {driving && <button className="btn-primary !px-2.5 !py-1 text-xs" disabled={asking} onClick={() => control("give_back")}>Give back to the AI</button>}
+          <span className={`flex items-center gap-1.5 text-xs ${fresh ? "text-ink-900" : "text-slate-500"}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${fresh ? "bg-red-600" : "bg-slate-300"}`} aria-hidden="true" />
+            {fresh ? "Live" : "Not streaming"}
+          </span>
+        </div>
       </div>
-      <div className="relative aspect-[1366/900] bg-slate-100">
+      <div
+        className={`relative aspect-[1366/900] bg-slate-100 outline-none ${driving ? "cursor-pointer ring-2 ring-inset ring-accent-600" : ""}`}
+        tabIndex={driving ? 0 : -1}
+        onClick={(e) => onClick(e)}
+        onDoubleClick={(e) => onClick(e, true)}
+        onWheel={(e) => driving && send({ kind: "scroll", dy: Math.max(-2000, Math.min(2000, e.deltaY)) })}
+        onKeyDown={onKeyDown}
+      >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={running ? `What the AI sees while testing ${running.externalId}` : "Last screen the AI saw"} className={`h-full w-full object-contain object-top ${fresh ? "" : "opacity-60"}`} />
+          <img
+            src={src}
+            draggable={false}
+            alt={running ? `What the AI sees while testing ${running.externalId}` : "Last screen the AI saw"}
+            className={`h-full w-full select-none object-contain object-top ${fresh ? "" : "opacity-60"}`}
+          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm text-slate-500">
             {runnerOnline ? (
@@ -306,7 +394,13 @@ function LiveView({ appId, runId, live, runnerOnline, running }: { appId: string
           </div>
         )}
       </div>
+      {driving && (
+        <p className="border-t border-slate-200 bg-amber-50 px-3 py-1.5 text-xs text-ink-900">
+          You are in control. Click and type on the picture. The AI is paused. Because you used the browser, this case&apos;s result will ask for your confirmation.
+        </p>
+      )}
       <div className="min-h-14 border-t border-slate-200 px-3 py-2 text-sm">{caption}</div>
+      {error ? <div className="border-t border-slate-200 p-3"><FormError error={error} /></div> : null}
     </section>
   );
 }

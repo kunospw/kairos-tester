@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Gallery } from "@/components/image-gallery";
 import { getPrisma } from "@/server/db";
 import { inbox } from "@/server/services/attention-service";
 import { EmptyState, OutcomeBadge, OutcomeIcon, PageHeader, Prewrap, PriorityBadge } from "@/components/ui";
@@ -133,13 +134,7 @@ export default async function NeedsYouPage({ params }: { params: Promise<{ appId
                         <p className="text-xs text-slate-500">No screenshots.</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-                          {images.slice(-3).map((e) => (
-                            <a key={e.id} href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-slate-200 hover:border-slate-400">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={`/api/evidence/${e.id}`} alt={e.caption ?? e.originalName} className="h-28 w-full object-cover object-top" loading="lazy" />
-                              <span className="block truncate px-1.5 py-0.5 text-xs text-slate-600">{e.caption ?? e.originalName}</span>
-                            </a>
-                          ))}
+                          <Gallery className="contents" images={images.map((e) => ({ id: e.id, caption: e.caption ?? e.originalName }))} maxThumbs={3} thumbClass="w-full" imgClass="h-28" />
                           {files.map((e) => (
                             <a key={e.id} className="flex items-center gap-1 text-sm text-accent-700 hover:underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">
                               <IconPaperclip size={14} /> {e.originalName}

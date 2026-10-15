@@ -646,6 +646,13 @@ enum RunItemStatus {
 }
 
 /// SETUP items rebuild data that later cases need; their results go to a separate setup cycle.
+/// A person driving the runner's browser from the live view. The AI pauses while ACTIVE.
+enum TakeoverState {
+  NONE
+  REQUESTED
+  ACTIVE
+}
+
 enum RunItemPurpose {
   TEST
   SETUP
@@ -680,6 +687,8 @@ model RunItem {
   cycleCaseId String
   sortOrder   Int
   purpose     RunItemPurpose @default(TEST)
+  takeover    TakeoverState @default(NONE)
+  inputs      LiveInput[]
   plan        RunPlan
   planReason  String?
   status      RunItemStatus @default(QUEUED)
@@ -751,4 +760,17 @@ model RunnerStatus {
   frame       Bytes?
   frameAt     DateTime?
   frameItemId String?
+}
+
+/// Clicks and keys sent from the live view; the runner applies them while a person has control.
+model LiveInput {
+  id        String   @id @default(cuid())
+  runItemId String
+  kind      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  runItem RunItem @relation(fields: [runItemId], references: [id], onDelete: Cascade)
+
+  @@index([runItemId, createdAt])
 }
