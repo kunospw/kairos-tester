@@ -47,17 +47,39 @@ export default async function ContextPage({ params, searchParams }: { params: Pr
     : [];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <PageHeader
-        title="Application context & AI assistance"
-        subtitle="Reviewed context guides AI drafting. AI output is always a proposal: nothing changes until you accept it."
+        back={{ href: `/apps/${appId}/settings`, label: "Setup" }}
+        title="Knowledge & AI drafting"
+        subtitle="The AI drafts cases and reviews results from what it knows about this application. Everything it writes is a draft until you accept it."
       />
       {!cfg.keyConfigured && (
-        <Alert kind="info" title="AI is not configured.">
-          Set OLLAMA_API_KEY in .env to enable AI actions. Everything else works without AI. <Link className="underline" href="/settings">Settings &amp; integrations</Link>
+        <Alert kind="info" title="AI is not configured">
+          Set OLLAMA_API_KEY in .env to enable AI actions. Everything else works without AI. <Link className="underline" href="/settings">Settings</Link>
         </Alert>
       )}
 
+      <div id="draft" className="scroll-mt-6">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <AiDraftCases
+          appId={appId}
+          enabled={cfg.keyConfigured}
+          entries={entries.map((e) => ({ id: e.id, title: e.title, status: e.status, category: e.category }))}
+        />
+        <AiReviewResults
+          appId={appId}
+          enabled={cfg.keyConfigured}
+          cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
+          cycleId={reviewCycle?.id ?? null}
+          rows={reviewRows}
+        />
+      </div>
+
+      </div>
+
+      <div>
+        <h2 className="mb-1 text-sm font-semibold">What the AI knows</h2>
+        <p className="mb-3 text-sm text-slate-500">Roles, workflows and rules. Reviewed entries are used when drafting; unreviewed ones are marked as such.</p>
       <ContextManager
         appId={appId}
         entries={entries.map((e) => ({
@@ -74,24 +96,11 @@ export default async function ContextPage({ params, searchParams }: { params: Pr
         sources={sources.map((s) => ({ id: s.id, kind: s.kind, title: s.title, location: s.location, notes: s.notes }))}
       />
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <AiDraftCases
-          appId={appId}
-          enabled={cfg.keyConfigured}
-          entries={entries.map((e) => ({ id: e.id, title: e.title, status: e.status, category: e.category }))}
-        />
-        <AiReviewResults
-          appId={appId}
-          enabled={cfg.keyConfigured}
-          cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
-          cycleId={reviewCycle?.id ?? null}
-          rows={reviewRows}
-        />
       </div>
 
-      <Card title="AI proposals">
+      <Card title="Earlier AI drafts">
         {proposals.length === 0 ? (
-          <p className="text-sm text-slate-500">No AI proposals yet.</p>
+          <p className="text-sm text-slate-500">Nothing drafted yet.</p>
         ) : (
           <table className="table-base">
             <thead>
@@ -100,7 +109,7 @@ export default async function ContextPage({ params, searchParams }: { params: Pr
             <tbody>
               {proposals.map((p) => (
                 <tr key={p.id}>
-                  <td className="whitespace-nowrap"><Link className="text-teal-700 hover:underline" href={`/apps/${appId}/context/proposals/${p.id}`}>{formatDateTime(p.createdAt)}</Link></td>
+                  <td className="whitespace-nowrap"><Link className="text-accent-700 hover:underline" href={`/apps/${appId}/context/proposals/${p.id}`}>{formatDateTime(p.createdAt)}</Link></td>
                   <td>{KIND_LABEL[p.kind]}</td>
                   <td className="text-xs">{p.model}</td>
                   <td>{p.items.length}</td>

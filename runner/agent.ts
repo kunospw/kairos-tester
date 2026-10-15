@@ -7,7 +7,7 @@ import { ollamaChat, extractJson, aiConfig, AiError } from "@/server/ai/ollama";
 import { agentReplySchema, type AgentAction, type CheckRecord, type StepRecord } from "@/lib/agent-protocol";
 import { parseProfile } from "@/lib/agent-profile";
 import { addEvidence } from "@/server/services/evidence-service";
-import { askAndWait, finishAgentAttempt, failItem, openAgentAttempt, parkItem, previousAnswers, progress, skipItem, unmetDependency, type ClaimedItem } from "@/server/services/run-service";
+import { askAndWait, finishAgentAttempt, failItem, openAgentAttempt, parkItem, previousAnswers, progress, publishFrame, waitForPrerequisites, type ClaimedItem } from "@/server/services/run-service";
 import { ACTIONS_PREFIX, pickRecipe } from "@/lib/recipes";
 import { Session } from "./browser";
 
@@ -75,8 +75,11 @@ Rules:
 export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: (s: string) => void) {
   const profile = parseProfile(item.run.environment.agentProfile);
   if (!profile) return failItem(db, item, null, "This environment is not set up for the AI runner.");
-  const dep = await unmetDependency(db, item);
-  if (dep) return skipItem(db, item, dep);
+  // A prerequisite hasn't passed yet: wait for it (the case starts by itself later), don't skip.
+  if (await waitForPrerequisites(db, item)) {
+    log(`${item.cycleCase.testCase.externalId}: waiting for a prerequisite; moving on.`);
+    return;
+  }
 
   const agentLabel = `Kairos AI (${aiConfig().model})`;
   const attempt = await openAgentAttempt(db, item, agentLabel);
@@ -95,7 +98,24 @@ export async function runItem(db: Db, browser: Browser, item: ClaimedItem, log: 
   const answers = await previousAnswers(db, item.id);
   const answersText = answers.map((r) => `Q: ${r.question}\nA: ${r.answer}`).join("\n");
   const session = new Session(browser, profile, [v.title, v.preconditions, v.stepsText, v.expectedResult].filter(Boolean).join("\n"));
-  await session.open();
+  // Live view: keep only the newest frame and write it at most every 800 ms.
+  let frame: Buffer | null = null;
+  session.onFrame = (jpeg) => {
+    frame = jpeg;
+  };
+  const frames = setInterval(() => {
+    if (!frame) return;
+    const f = frame;
+    frame = null;
+    publishFrame(db, item.id, f).catch(() => {});
+  }, 800);
+  try {
+    await session.open();
+  } catch (e) {
+    clearInterval(frames);
+    await session.close();
+    throw e;
+  }
   const uploadable = session.uploadableFiles();
 
   const shoot = async (caption: string) => {
@@ -267,8 +287,11 @@ Next action?`;
         } else if (a.type === "ask_human") {
           const r = await askAndWait(db, item, a.question);
           if (r.status === "timeout") {
+            // Nobody answered yet: notify (it is in Needs you), park, and move on to work the
+            // AI can do. Answering puts this case back in the queue and the AI revisits it.
             await shoot("Waiting for an answer").catch(() => {});
             await parkItem(db, item, attempt.id, a.question);
+            log(`${ext}: asked a person "${a.question}"; moving on until they answer.`);
             return;
           }
           result = r.status === "answered" ? `The person answered: ${r.answer}` : "The person skipped this. Finish with BLOCKED if you cannot continue.";
@@ -302,6 +325,7 @@ Next action?`;
         .create({ data: { runId: item.runId, runItemId: item.id, message: `${ACTIONS_PREFIX}${ext}\n${history.slice(-40).join("\n")}`.slice(0, 8000) } })
         .catch(() => {});
     }
+    clearInterval(frames);
     await session.close();
   }
 }

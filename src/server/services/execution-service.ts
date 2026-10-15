@@ -6,6 +6,7 @@
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import type { Prisma } from "@/generated/prisma/client";
+import { releaseWaiting } from "@/server/services/run-waiting";
 import { badRequest, conflict, notFound } from "@/server/errors";
 import { validateCompletion } from "@/lib/execution-rules";
 import { isoDateToDbDate, todayIso } from "@/lib/dates";
@@ -169,13 +170,16 @@ export async function completeAttempt(db: Db, attemptId: string, input: AttemptU
   const waiting = await db.runItem.findMany({ where: { cycleCaseId: a.cycleCaseId, status: "NEEDS_HUMAN" } });
   for (const it of waiting) {
     await db.humanRequest.updateMany({
-      where: { runItemId: it.id, status: "OPEN", kind: { in: ["MANUAL_CASE", "RUN_ERROR", "CONFIRM_RESULT"] } },
+      where: { runItemId: it.id, status: "OPEN", kind: { in: ["MANUAL_CASE", "RUN_ERROR", "CONFIRM_RESULT", "INPUT"] } },
       data: { status: "ANSWERED", answer: "Decided outside the run page", answeredBy: user, answeredAt: new Date() },
     });
     if ((await db.humanRequest.count({ where: { runItemId: it.id, status: "OPEN" } })) === 0) {
       await db.runItem.update({ where: { id: it.id }, data: { status: "DONE", attemptId, statusNote: `Done by ${user}.` } });
     }
   }
+  // Cases in AI runs that were waiting for this one can start now (or come to a person).
+  const runs = await db.runItem.findMany({ where: { cycleCaseId: a.cycleCaseId }, select: { runId: true }, distinct: ["runId"] });
+  for (const r of runs) await releaseWaiting(db, r.runId);
   return done;
 }
 

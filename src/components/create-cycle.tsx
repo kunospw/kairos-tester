@@ -58,9 +58,9 @@ export function CreateCycle({
   return (
     <>
       <button className="btn-primary" onClick={() => setOpen(true)} disabled={totalCases === 0} title={totalCases === 0 ? "Add test cases first" : undefined}>
-        + New cycle
+        New round
       </button>
-      <Modal open={open} onClose={() => setOpen(false)} title="New test cycle" wide>
+      <Modal open={open} onClose={() => setOpen(false)} title="New test round" wide>
         <form onSubmit={submit} className="space-y-4">
           <FormError error={error} />
           <div className="grid gap-3 md:grid-cols-2">
@@ -113,12 +113,12 @@ export function CreateCycle({
               </div>
             )}
           </fieldset>
-          <p className="rounded bg-sky-50 px-3 py-2 text-sm text-sky-900">
-            {selectedCount} case(s) will be assigned at their current version, all starting as <strong>Not run</strong>. Results from earlier cycles or builds are not carried over.
+          <p className="rounded bg-slate-50 px-3 py-2 text-sm text-ink-800">
+            {selectedCount} case(s) will be assigned at their current version, all starting as <strong>Not run</strong>. Results from earlier rounds or builds are not carried over.
           </p>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={busy || selectedCount === 0}>{busy ? "Creating…" : "Create cycle"}</button>
+            <button type="submit" className="btn-primary" disabled={busy || selectedCount === 0}>{busy ? "Creating…" : "Create round"}</button>
           </div>
         </form>
       </Modal>

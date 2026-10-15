@@ -20,25 +20,25 @@ export default async function ReportsPage({ params, searchParams }: { params: Pr
     <>
       <PageHeader
         title="Reports"
-        subtitle="A report is a saved snapshot of a cycle's results. Later retests do not change an existing snapshot; create a new one instead."
+        subtitle="A frozen copy of a round's results to share with the customer. Later retests don't change it; create a new report instead."
         actions={cycles.length > 0 && <CreateReport appId={appId} cycles={cycles.map((c) => ({ id: c.id, name: c.name, scope: c.scope, excludedScope: c.excludedScope }))} defaultCycleId={cycle} />}
       />
       {reports.length === 0 ? (
         <EmptyState title="No reports yet">
-          {cycles.length ? "Create a report snapshot from a cycle." : "Create or import a cycle first. Simulation cycles cannot be reported."}
+          {cycles.length ? "Create a report snapshot from a round." : "Create or import a round first. Simulation rounds cannot be reported."}
         </EmptyState>
       ) : (
         <div className="card overflow-x-auto">
           <table className="table-base">
             <thead>
-              <tr><th>Report</th><th>Cycle</th><th>Snapshot taken</th><th className="text-right">Cases</th><th>Coverage</th><th>Pass rate</th><th>AI summary</th></tr>
+              <tr><th>Report</th><th>Round</th><th>Snapshot taken</th><th className="text-right">Cases</th><th>Coverage</th><th>Pass rate</th><th>AI summary</th></tr>
             </thead>
             <tbody>
               {reports.map((r) => {
                 const d = r.data as unknown as ReportData;
                 return (
                   <tr key={r.id}>
-                    <td className="font-medium"><Link className="text-teal-700 hover:underline" href={`/apps/${appId}/reports/${r.id}`}>{r.title}</Link></td>
+                    <td className="font-medium"><Link className="text-accent-700 hover:underline" href={`/apps/${appId}/reports/${r.id}`}>{r.title}</Link></td>
                     <td className="text-xs">{r.cycle.name}</td>
                     <td className="whitespace-nowrap text-xs">{formatDateTime(r.createdAt)} by {r.createdBy}</td>
                     <td className="text-right">{d.metrics.total}</td>

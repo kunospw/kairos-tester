@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/client-api";
 import { FormError } from "@/components/form-error";
+import { IconPaperclip } from "@/components/icons";
 import { LifecycleBadge, ModeBadge, OutcomeBadge, PriorityBadge } from "@/components/ui";
 import { OUTCOME_LABEL, type AttemptStatusValue, type ExecutionModeValue, type OutcomeValue, type PriorityValue } from "@/lib/domain";
 
@@ -93,15 +94,15 @@ export function CycleCaseTable({ appId, cycleId, rows, simulation, closed }: { a
             {filtered.map((r) => (
               <tr key={r.cycleCaseId}>
                 <td className="whitespace-nowrap font-medium">
-                  <Link className="text-teal-700 hover:underline" href={`/apps/${appId}/cases/${r.testCaseId}`}>{r.externalId}</Link>
+                  <Link className="text-accent-700 hover:underline" href={`/apps/${appId}/cases/${r.testCaseId}`}>{r.externalId}</Link>
                 </td>
                 <td className="min-w-64">
                   {r.title}
                   <div className="text-xs text-slate-500">{r.section ?? "no section"} · v{r.versionNumber}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {r.flags > 0 && <span className="rounded bg-orange-50 px-1 text-xs text-orange-900 ring-1 ring-orange-300">⚑ {r.flags} flag{r.flags > 1 ? "s" : ""}</span>}
-                    {r.partial && <span className="rounded bg-orange-50 px-1 text-xs text-orange-900">partial coverage</span>}
-                    {r.evidence > 0 && <span className="rounded bg-slate-100 px-1 text-xs text-slate-600">📎 {r.evidence}</span>}
+                  <div className="flex flex-wrap gap-x-2">
+                    {r.flags > 0 && <span className="text-xs font-medium text-orange-700">{r.flags} flag{r.flags > 1 ? "s" : ""}</span>}
+                    {r.partial && <span className="text-xs text-orange-700">partial coverage</span>}
+                    {r.evidence > 0 && <span className="inline-flex items-center gap-0.5 text-xs text-slate-500"><IconPaperclip size={12} />{r.evidence}</span>}
                   </div>
                 </td>
                 <td><PriorityBadge priority={r.priority} /></td>

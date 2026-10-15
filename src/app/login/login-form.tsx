@@ -55,7 +55,7 @@ export function LoginForm({ configured, dbError }: { configured: boolean; dbErro
           required
         />
       </div>
-      <button type="submit" className="btn-primary w-full py-2" disabled={busy}>
+      <button type="submit" className="btn-primary btn-lg w-full" disabled={busy}>
         {busy ? "Signing in…" : "Sign in"}
       </button>
     </form>

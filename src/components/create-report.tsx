@@ -47,12 +47,12 @@ export function CreateReport({
 
   return (
     <>
-      <button className="btn-primary" onClick={() => setOpen(true)}>+ New report snapshot</button>
+      <button className="btn-primary" onClick={() => setOpen(true)}>New report</button>
       <Modal open={open} onClose={() => setOpen(false)} title="New report snapshot">
         <form onSubmit={submit} className="space-y-3">
           <FormError error={error} />
           <div>
-            <label className="label" htmlFor="rp-cycle">Cycle</label>
+            <label className="label" htmlFor="rp-cycle">Round</label>
             <select id="rp-cycle" className="input" value={cycleId} onChange={(e) => pick(e.target.value)}>
               {cycles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>

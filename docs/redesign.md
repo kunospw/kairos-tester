@@ -1,6 +1,6 @@
 # Kairos Tester: architecture review and low-friction redesign
 
-Status: phase 1 is implemented (see section 5). Phases 2 to 4 are proposals.
+Status: phase 1 and the UI redesign (section 6) are implemented. The rest of phases 2 to 4 are proposals.
 
 ## 1. How it works today
 
@@ -85,11 +85,11 @@ Navigation (phase 1, done):
 - **One command starts everything.** `npm run app` launches the web app and the
   runner together (a small Node launcher; no new dependency), so the second terminal
   goes away. Keep `npm run runner` for running them separately.
-- **Faster confirming.** In *Needs you*: keyboard shortcuts (P/F/B/N) and "confirm
+- **Faster confirming.** Done: keyboard shortcuts (P/F/B/N). Still proposed: "confirm
   all as suggested" for a selection. Confirming results one by one is the biggest time
   cost after a long run.
-- **Don't miss questions.** Browser notification and tab-title count when a question
-  arrives; make the 60 s wait (`RUNNER_ASK_WAIT_MS`) a per-environment setting.
+- **Don't miss questions.** Done: desktop notification and tab-title count. Still
+  proposed: make the wait (`RUNNER_ASK_WAIT_MS`) a per-environment setting.
 - **Repeat in one click.** "Run again" and "Retest failures" on a finished run.
 - **Report draft on finish.** Create the draft report automatically when a run ends.
 
@@ -125,3 +125,27 @@ Navigation (phase 1, done):
   `AgentSetupForm` keeps settings it doesn't display.
 - Stale "Not connected" runner text replaced with real status; README updated.
 - `.gitignore`: `storage/` → `/storage/`.
+
+## 6. UI redesign and "nothing is skipped" (implemented)
+
+Researched against TestRail's run/results model, Linear's sidebar, inbox and keyboard
+patterns, Carbon / Dynatrace status guidance (shape + colour + label, never colour alone),
+and published lists of generic "AI-generated UI" tells. The resulting rules are in
+`docs/design.md`.
+
+- **Sidebar shell** with an app switcher, the loop-ordered nav with the Needs you count,
+  runner status, notifications and account. With one application, `/` opens it directly.
+- **Results** leads with one next step, one status bar, a single "needs attention" list
+  (empty groups hidden) and per-section progress.
+- **Run tests** is three steps: where, what, start (with a one-line plan summary).
+- **Live run** shows the application live beside the results (runner screencast →
+  `RunnerStatus.frame` → `GET /api/apps/:id/runs/:runId/live`), and can stop a run.
+- **Needs you** is keyboard-driven (P / F / B / N on the top result), and every item
+  can be handed back to the AI.
+- **One word for a round of testing**: "round" throughout the UI (`TestCycle` in data).
+- **Runner behaviour**: questions park after `RUNNER_ASK_WAIT_MS` (15 s) without
+  recording a result; prerequisites make a case `WAITING` instead of skipped
+  (`src/server/services/run-waiting.ts`); the `recheck` action re-queues any request so the
+  AI revisits it, and a confirmed failure is kept as history before the re-test.
+- Migration `20261015130000_live_view_waiting`: `RunItemStatus.WAITING` and the live-frame
+  columns on `RunnerStatus`.

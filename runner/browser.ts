@@ -33,6 +33,8 @@ export class Session {
   /** Overlay buttons to click away; cleared for cases that test those overlays (e.g. tours). */
   autoDismiss: string[] = [];
   private startedAt = new Date().toISOString();
+  /** Receives JPEG frames of the page as it changes (live view). Set before open(). */
+  onFrame: ((jpeg: Buffer) => void) | null = null;
 
   constructor(
     private browser: Browser,
@@ -59,6 +61,22 @@ export class Session {
     this.startedAt = new Date(Date.now() - 1000).toISOString();
     this.page = await this.context.newPage();
     this.page.setDefaultTimeout(15_000);
+    await this.startScreencast();
+  }
+
+  /** Chrome sends a frame only when the page changes, so an idle page costs nothing. Best effort. */
+  private async startScreencast() {
+    if (!this.onFrame) return;
+    try {
+      const cdp = await this.context.newCDPSession(this.page);
+      cdp.on("Page.screencastFrame", (f) => {
+        cdp.send("Page.screencastFrameAck", { sessionId: f.sessionId }).catch(() => {});
+        this.onFrame?.(Buffer.from(f.data, "base64"));
+      });
+      await cdp.send("Page.startScreencast", { format: "jpeg", quality: 60, maxWidth: 1366, maxHeight: 900, everyNthFrame: 2 });
+    } catch {
+      /* the live view is optional; the run carries on without it */
+    }
   }
 
   async close() {

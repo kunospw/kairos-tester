@@ -13,7 +13,7 @@ export default async function NewCasePage({ params }: { params: Promise<{ appId:
   });
   return (
     <>
-      <PageHeader title="New test case" subtitle="Creates version 1 of a new case. It is not added to any cycle until you create or update a cycle." />
+      <PageHeader title="New test case" subtitle="Creates version 1 of a new case. It is not added to any round until you create or update a round." />
       <Card>
         <CaseForm appId={appId} mode="create" initial={emptyCase} sections={sections.map((s) => s.section!)} />
       </Card>

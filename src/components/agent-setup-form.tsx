@@ -89,7 +89,7 @@ export function AgentSetupForm({
         </div>
       </div>
       <fieldset className="rounded border border-slate-200 p-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Signing in</legend>
+        <legend className="px-1 text-xs font-semibold text-slate-600">Signing in</legend>
         <label className="flex items-center gap-2"><input type="radio" checked={signInMethod === "email_code_outbox"} onChange={() => setSignInMethod("email_code_outbox")} /> Email + one-time code, read from the app&apos;s local code file</label>
         <label className="flex items-center gap-2"><input type="radio" checked={signInMethod === "none"} onChange={() => setSignInMethod("none")} /> No sign-in needed</label>
         {signInMethod === "email_code_outbox" && (
@@ -100,7 +100,7 @@ export function AgentSetupForm({
         )}
       </fieldset>
       <fieldset className="rounded border border-slate-200 p-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Acting as different roles</legend>
+        <legend className="px-1 text-xs font-semibold text-slate-600">Acting as different roles</legend>
         <label className="flex items-center gap-2"><input type="checkbox" checked={useViewAs} onChange={(e) => setUseViewAs(e.target.checked)} /> Switch roles with “View as” (Admin → People)</label>
         <label className="label mt-2" htmlFor={`as-roles-${env.id}`}>Role → account (one per line; “(me)” = the signed-in account)</label>
         <textarea id={`as-roles-${env.id}`} className="input font-mono text-xs" rows={6} value={roles} onChange={(e) => setRoles(e.target.value)} placeholder={"K admin = (me)\nData owner = demo.arlead\nCustomer PM = demo.pm"} />

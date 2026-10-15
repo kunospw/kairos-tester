@@ -163,7 +163,25 @@ runner in a second terminal and leave it open:
 npm run runner
 ```
 
-The **AI runner on/off** indicator next to the tabs shows whether it is running. That
+The **AI runner** indicator at the bottom of the sidebar shows whether it is running.
+
+While a run is going:
+
+* **Live view.** The run page shows the application under test beside the results,
+  streamed from the runner's browser (about once a second, only when the screen
+  changes). Set `RUNNER_HEADED=true` to also get a real browser window.
+* **Nothing is skipped.** When the AI needs a person (a question, a failure to
+  confirm, a case it can't do, a case it got stuck on) it waits briefly
+  (`RUNNER_ASK_WAIT_MS`, default 15 s), then parks that case, adds it to **Needs you**
+  and moves on to the next case it can do. A case whose prerequisite hasn't passed yet
+  waits and starts by itself when the prerequisite passes.
+* **The AI revisits.** Once you've done your part (fixed the bug, answered, done the
+  manual step), choose *Done, let the AI check it* / *Fixed, re-test it*. The case goes
+  back in the queue with your note, and the AI checks it again and confirms the result.
+  A confirmed failure stays in the history; the re-check is the next attempt.
+* **Notifications.** The Needs you count shows in the sidebar and the tab title. Choose
+  *Turn on notifications* in the sidebar for a desktop notification whenever something
+  new needs you. That
 check calls the real provider and reports the model name, latency and whether it
 returned valid JSON. Each AI action first shows *exactly* what will be sent
 (selected text only, never attachments or credentials). The output is validated
@@ -274,6 +292,7 @@ tests/db/               integration tests (disposable test DB)
 scripts/                hash-password, smoke check
 runner/                 local AI runner (npm run runner): claims queued cases, drives the browser
 docs/redesign.md        architecture review and the low-friction redesign plan
+docs/design.md          design system: tokens, status, components, what the UI avoids
 docs/runner-interface.md  earlier design for an HTTP runner API (superseded by runner/)
 docker-compose.yml      optional local PostgreSQL
 ```

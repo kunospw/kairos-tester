@@ -637,6 +637,8 @@ enum RunStatus {
 enum RunItemStatus {
   QUEUED
   RUNNING
+  /// Waiting for another case in the run (a prerequisite) to pass; starts by itself when it does.
+  WAITING
   NEEDS_HUMAN
   DONE
   SKIPPED
@@ -745,4 +747,8 @@ model RunnerStatus {
   id         String   @id
   lastSeenAt DateTime
   info       String?
+  /// Latest frame of the runner's browser (JPEG), for the live view on the run page.
+  frame       Bytes?
+  frameAt     DateTime?
+  frameItemId String?
 }

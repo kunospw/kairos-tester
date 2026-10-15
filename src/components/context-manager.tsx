@@ -69,7 +69,7 @@ export function ContextManager({ appId, entries, sources }: { appId: string; ent
               <option value="REVIEWED">Reviewed only</option>
               <option value="OUTDATED">Outdated</option>
             </select>
-            <button className="btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add entry</button>
+            <button className="btn-secondary btn-sm" onClick={() => setAdding(true)}>Add entry</button>
           </div>
         }
       >
@@ -115,7 +115,7 @@ export function ContextManager({ appId, entries, sources }: { appId: string; ent
           <div className="space-y-4">
             {grouped.filter((g) => g.items.length).map((g) => (
               <section key={g.cat}>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{CONTEXT_CATEGORY_LABEL[g.cat]}</h3>
+                <h3 className="mb-1 text-xs font-semibold text-slate-500">{CONTEXT_CATEGORY_LABEL[g.cat]}</h3>
                 <ul className="space-y-2">
                   {g.items.map((e) => (
                     <li key={e.id} className="rounded border border-slate-200 p-3">

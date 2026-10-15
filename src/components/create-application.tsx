@@ -5,9 +5,9 @@ import { apiFetch } from "@/lib/client-api";
 import { FormError } from "@/components/form-error";
 import { Modal } from "@/components/modal";
 
-export function CreateApplication({ primary = false }: { primary?: boolean }) {
+export function CreateApplication({ primary = false, defaultOpen = false }: { primary?: boolean; defaultOpen?: boolean }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<unknown>(null);
@@ -19,7 +19,8 @@ export function CreateApplication({ primary = false }: { primary?: boolean }) {
     setError(null);
     try {
       const app = await apiFetch<{ id: string }>("/api/apps", { method: "POST", json: { name, description } });
-      router.push(`/apps/${app.id}`);
+      router.push(`/apps/${app.id}/settings`);
+      router.refresh();
     } catch (err) {
       setError(err);
       setBusy(false);
@@ -28,8 +29,8 @@ export function CreateApplication({ primary = false }: { primary?: boolean }) {
 
   return (
     <>
-      <button className={primary ? "btn-accent" : "btn-primary"} onClick={() => setOpen(true)}>
-        + New application
+      <button className={primary ? "btn-primary" : "btn-secondary"} onClick={() => setOpen(true)}>
+        New application
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="New application">
         <form onSubmit={submit} className="space-y-3">

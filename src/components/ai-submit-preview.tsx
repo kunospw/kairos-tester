@@ -9,7 +9,7 @@ export interface PreparedPreview {
 export function AiSubmitPreview({ preview }: { preview: PreparedPreview }) {
   const s = preview.submitted;
   return (
-    <div className="rounded border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
+    <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-ink-800">
       <p className="font-semibold">What will be sent to {s.endpointHost} ({s.model})</p>
       <p className="mt-1">{s.summary}</p>
       <ul className="mt-1 list-disc pl-5 text-xs">
@@ -23,7 +23,7 @@ export function AiSubmitPreview({ preview }: { preview: PreparedPreview }) {
         <summary className="cursor-pointer text-xs font-medium">Show the full prompt</summary>
         {preview.messages.map((m, i) => (
           <div key={i} className="mt-2">
-            <p className="text-xs font-semibold uppercase">{m.role}</p>
+            <p className="text-xs font-semibold">{m.role}</p>
             <pre className="prewrap max-h-64 overflow-auto rounded bg-white p-2 text-xs text-slate-700">{m.content}</pre>
           </div>
         ))}

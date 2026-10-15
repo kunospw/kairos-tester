@@ -42,14 +42,14 @@ export function EnvironmentManager({
       ) : (
         <table className="table-base mb-4">
           <thead>
-            <tr><th>Name</th><th>Type</th><th>Target URL</th><th>Notes</th><th className="text-right">Cycles</th></tr>
+            <tr><th>Name</th><th>Type</th><th>Target URL</th><th>Notes</th><th className="text-right">Rounds</th></tr>
           </thead>
           <tbody>
             {environments.map((e) => (
               <tr key={e.id}>
                 <td className="font-medium">{e.name}</td>
                 <td className="text-xs">{e.type.toLowerCase()}</td>
-                <td className="text-xs">{e.targetUrl ? <a className="text-teal-700 underline" href={e.targetUrl} target="_blank" rel="noreferrer noopener">{e.targetUrl}</a> : "—"}</td>
+                <td className="text-xs">{e.targetUrl ? <a className="text-accent-700 underline" href={e.targetUrl} target="_blank" rel="noreferrer noopener">{e.targetUrl}</a> : "—"}</td>
                 <td className="text-xs">{e.notes ?? ""}</td>
                 <td className="text-right">{e.cycles}</td>
               </tr>

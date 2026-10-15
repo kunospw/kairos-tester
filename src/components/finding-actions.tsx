@@ -50,7 +50,7 @@ export function FindingActions({ appId, findingId, status }: { appId: string; fi
         rows={2}
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder={mode === "RESOLVED" ? "How was this addressed? (e.g. retested in cycle X)" : "Why is this flag not applicable?"}
+        placeholder={mode === "RESOLVED" ? "How was this addressed? (e.g. retested in round X)" : "Why is this flag not applicable?"}
         aria-label="Resolution note"
       />
       <div className="flex gap-2">

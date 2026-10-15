@@ -8,7 +8,7 @@ import type { Prisma } from "@/generated/prisma/client";
 export const RUNNER_STALE_MS = 20_000;
 
 export async function runnerStatus(db: Db) {
-  const r = await db.runnerStatus.findUnique({ where: { id: "local" } });
+  const r = await db.runnerStatus.findUnique({ where: { id: "local" }, select: { lastSeenAt: true, info: true } });
   return {
     online: Boolean(r && Date.now() - r.lastSeenAt.getTime() < RUNNER_STALE_MS),
     lastSeenAt: r?.lastSeenAt.toISOString() ?? null,
@@ -67,6 +67,7 @@ export async function inbox(db: Db, applicationId: string) {
         stepOutcomes: { orderBy: { stepIndex: "asc" } },
         evidence: { orderBy: { createdAt: "asc" } },
         cycleCase: { include: { testCase: true, cycle: true } },
+        runItems: { select: { requests: { where: { status: "OPEN", kind: "CONFIRM_RESULT" }, select: { id: true } } } },
       },
     }),
     db.aiProposal.findMany({

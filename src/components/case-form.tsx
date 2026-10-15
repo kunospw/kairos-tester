@@ -126,7 +126,7 @@ export function CaseForm({
     <form onSubmit={submit} className="space-y-4">
       <FormError error={error} />
       {mode === "edit" && (
-        <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+        <p className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink-800">
           Saving creates <strong>version {(versionNumber ?? 0) + 1}</strong>. Version {versionNumber} and every execution that used it stay unchanged.
         </p>
       )}

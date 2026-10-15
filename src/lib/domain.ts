@@ -86,7 +86,7 @@ export const CONTEXT_CATEGORY_LABEL: Record<string, string> = {
 };
 
 export const CYCLE_KIND_LABEL: Record<string, string> = {
-  STANDARD: "Test cycle",
+  STANDARD: "Test round",
   HISTORICAL_IMPORT: "Historical (imported)",
   SIMULATION: "Simulation demo (not real results)",
 };

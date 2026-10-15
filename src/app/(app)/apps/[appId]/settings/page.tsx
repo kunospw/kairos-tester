@@ -69,7 +69,7 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
                 {s.done ? "✓" : "○"}
               </span>
               <span className={s.done ? "text-slate-700" : "font-medium text-slate-900"}>{s.label}</span>
-              {!s.done && <span className="text-xs text-teal-700">{s.help}</span>}
+              {!s.done && <span className="text-xs text-accent-700">{s.help}</span>}
             </li>
           ))}
         </ol>
@@ -94,7 +94,7 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
               return (
                 <details key={e.id} className="rounded border border-slate-200" open={!profile && readyCount === 0}>
                   <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                    <span className="font-medium text-navy-900">{e.name}</span>
+                    <span className="font-medium text-ink-900">{e.name}</span>
                     {profile ? (
                       <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-800 ring-1 ring-green-200">✓ ready for AI runs</span>
                     ) : (
@@ -133,6 +133,10 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
               It needs OLLAMA_API_KEY in .env and a Chromium browser (<code>npx playwright install chromium</code>, or set RUNNER_BROWSER_PATH). You can start runs while it is
               off; they wait for it.
             </p>
+            <p className="text-xs text-slate-500">
+              While it works, the run page shows the application live beside the results. To also watch it in a real browser window, start it with{" "}
+              <code>RUNNER_HEADED=true</code> in .env.
+            </p>
             {bindings.length > 0 && (
               <p className="text-xs text-slate-500">
                 {bindings.length} case(s) also store a scripted automation reference ({bindings.filter((b) => b.reviewedBy).length} reviewed).
@@ -155,7 +159,7 @@ export default async function AppSetupPage({ params }: { params: Promise<{ appId
         ) : (
           <table className="table-base">
             <thead>
-              <tr><th>When</th><th>File</th><th>Sheet</th><th>Into cycle</th><th>By</th><th>Result</th></tr>
+              <tr><th>When</th><th>File</th><th>Sheet</th><th>Into round</th><th>By</th><th>Result</th></tr>
             </thead>
             <tbody>
               {batches.map((b) => {

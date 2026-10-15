@@ -140,9 +140,9 @@ export default async function CaseDetailPage({
         </div>
       </div>
 
-      <Card title="Execution history (all cycles)">
+      <Card title="Execution history (all rounds)">
         {tc.cycleCases.length === 0 ? (
-          <p className="text-sm text-slate-500">This case is not in any cycle yet.</p>
+          <p className="text-sm text-slate-500">This case is not in any round yet.</p>
         ) : (
           <div className="space-y-4">
             {tc.cycleCases.map((cc) => (
@@ -151,10 +151,10 @@ export default async function CaseDetailPage({
                   <span>
                     <strong>{cc.cycle.name}</strong> <span className="text-xs text-slate-500">({CYCLE_KIND_LABEL[cc.cycle.kind]}) · assigned v{cc.caseVersion.versionNumber}</span>
                   </span>
-                  <TextLink href={`${base}/cycles/${cc.cycleId}/run/${cc.id}`}>Open in cycle →</TextLink>
+                  <TextLink href={`${base}/cycles/${cc.cycleId}/run/${cc.id}`}>Open in round →</TextLink>
                 </div>
                 {cc.attempts.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-slate-500">Not run in this cycle.{cc.importNotes ? ` Imported note: ${cc.importNotes}` : ""}</p>
+                  <p className="px-3 py-2 text-sm text-slate-500">Not run in this round.{cc.importNotes ? ` Imported note: ${cc.importNotes}` : ""}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="table-base">
@@ -172,7 +172,7 @@ export default async function CaseDetailPage({
                       </thead>
                       <tbody>
                         {cc.attempts.map((a) => (
-                          <tr key={a.id} className={a.isSimulated ? "bg-purple-50/50" : ""}>
+                          <tr key={a.id} className={a.isSimulated ? "bg-slate-50" : ""}>
                             <td>{a.attemptNumber}</td>
                             <td>
                               <div className="flex flex-col items-start gap-1">
@@ -201,7 +201,7 @@ export default async function CaseDetailPage({
                                 <ul>
                                   {a.evidence.map((e) => (
                                     <li key={e.id}>
-                                      <a className="text-teal-700 hover:underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">{e.originalName}</a>
+                                      <a className="text-accent-700 hover:underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">{e.originalName}</a>
                                     </li>
                                   ))}
                                 </ul>

@@ -68,7 +68,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
         title={`${cc.testCase.externalId} · ${v.title}`}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <span>Cycle <strong>{cc.cycle.name}</strong></span>
+            <span>Round <strong>{cc.cycle.name}</strong></span>
             <span>· Build {cc.cycle.buildLabel ?? "not recorded"}</span>
             <span>· Instructions v{v.versionNumber}</span>
             <PriorityBadge priority={v.priority as PriorityValue} />
@@ -77,17 +77,17 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
         }
         actions={
           <>
-            <Link className="btn-secondary" href={base}>← Cycle</Link>
+            <Link className="btn-secondary" href={base}>← Round</Link>
             {prev && <Link className="btn-secondary" href={`${base}/run/${prev}`}>‹ Previous</Link>}
             {next && <Link className="btn-secondary" href={`${base}/run/${next}`}>Next ›</Link>}
           </>
         }
       />
       {simulation && <SimulationBanner />}
-      {closed && <Alert kind="info" title="This cycle is closed.">Results are read-only. Reopen the cycle to record more attempts.</Alert>}
+      {closed && <Alert kind="info" title="This round is closed.">Results are read-only. Reopen the round to record more attempts.</Alert>}
       {latest.versionNumber !== v.versionNumber && (
         <Alert kind="warning" title={`A newer version of this case exists (v${latest.versionNumber}).`}>
-          This cycle uses v{v.versionNumber}. Earlier attempts keep the instructions they used.
+          This round uses v{v.versionNumber}. Earlier attempts keep the instructions they used.
           {!open && !closed && <AdoptLatestButton ccId={cc.id} latest={latest.versionNumber} />}
         </Alert>
       )}
@@ -112,7 +112,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
               {v.dependsOn && <div><dt className="label">Depends on</dt><dd>{v.dependsOn}</dd></div>}
               <div><dt className="label">Preconditions</dt><dd><Prewrap text={v.preconditions} empty="None stated" /></dd></div>
               <div><dt className="label">Steps</dt><dd><Prewrap text={v.stepsText} /></dd></div>
-              <div><dt className="label">Expected result</dt><dd className="rounded bg-teal-50 p-2"><Prewrap text={v.expectedResult} /></dd></div>
+              <div><dt className="label">Expected result</dt><dd className="rounded bg-accent-50 p-2"><Prewrap text={v.expectedResult} /></dd></div>
               {v.testData && <div><dt className="label">Test data</dt><dd><Prewrap text={v.testData} /></dd></div>}
             </dl>
           </Card>
@@ -120,20 +120,16 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
             {cc.cycle.environment?.targetUrl ? (
               <p className="text-sm">
                 Open the application separately and perform the steps:{" "}
-                <a className="font-medium text-teal-700 underline" href={cc.cycle.environment.targetUrl} target="_blank" rel="noreferrer noopener">
+                <a className="font-medium text-accent-700 underline" href={cc.cycle.environment.targetUrl} target="_blank" rel="noreferrer noopener">
                   {cc.cycle.environment.name}: {cc.cycle.environment.targetUrl} ↗
                 </a>
               </p>
             ) : (
-              <p className="text-sm text-slate-500">No target URL recorded for this cycle&apos;s environment. Open the application under test separately.</p>
+              <p className="text-sm text-slate-500">No target URL recorded for this round&apos;s environment. Open the application under test separately.</p>
             )}
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              <button className="btn-secondary btn-sm" disabled title="No automation runner is connected">Run automated test</button>
-              <p className="mt-1 text-xs text-slate-500">
-                Disabled: automation runner <strong>Not connected</strong>
-                {cc.testCase.automation ? ` (reference stored: ${cc.testCase.automation.runnerType}${cc.testCase.automation.reviewedBy ? ", reviewed" : ", not reviewed"})` : "; no reviewed script or binding for this case"}.
-              </p>
-            </div>
+            <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+              Want the AI to test it? <Link className="text-accent-700 hover:underline" href={`/apps/${appId}/run`}>Start a run</Link> and choose this round; it picks up the cases not tested yet.
+            </p>
           </Card>
         </div>
 
@@ -151,12 +147,12 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
           <Card title={`Attempt history (${completed.length} completed)`}>
             {completed.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No completed attempts in this cycle.{cc.importNotes ? ` Imported note: ${cc.importNotes}` : ""}
+                No completed attempts in this round.{cc.importNotes ? ` Imported note: ${cc.importNotes}` : ""}
               </p>
             ) : (
               <ol className="space-y-3">
                 {completed.map((a) => (
-                  <li key={a.id} className={`rounded border p-3 text-sm ${a.isSimulated ? "border-dashed border-purple-400" : "border-slate-200"}`}>
+                  <li key={a.id} className={`rounded border p-3 text-sm ${a.isSimulated ? "border-dashed border-slate-400" : "border-slate-200"}`}>
                     <div className="flex flex-wrap items-center gap-2">
                       <strong>Attempt {a.attemptNumber}</strong>
                       {a.outcome && <OutcomeBadge outcome={a.outcome as OutcomeValue} />}
@@ -188,7 +184,7 @@ export default async function RunPage({ params }: { params: Promise<{ appId: str
                       <ul className="mt-1 flex flex-wrap gap-2 text-xs">
                         {a.evidence.map((e) => (
                           <li key={e.id}>
-                            <a className="text-teal-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">📎 {e.originalName}</a>
+                            <a className="text-accent-700 underline" href={`/api/evidence/${e.id}`} target="_blank" rel="noreferrer">📎 {e.originalName}</a>
                             {e.caption && <span className="text-slate-500"> ({e.caption})</span>}
                           </li>
                         ))}

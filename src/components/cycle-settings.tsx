@@ -37,7 +37,7 @@ export function CycleSettings({
 
   return (
     <details className="card" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-      <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-navy-800">
+      <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-ink-800">
         Cycle details: scope, environment, build
         {cycle.scope && <span className="ml-2 font-normal text-slate-500">Scope: {cycle.scope.slice(0, 80)}</span>}
       </summary>
@@ -68,9 +68,9 @@ export function CycleSettings({
         <div className="flex flex-wrap gap-2">
           <button className="btn-primary" onClick={() => save()}>Save details</button>
           {cycle.status === "OPEN" ? (
-            <button className="btn-secondary" onClick={() => save({ status: "CLOSED" })}>Close cycle (read-only)</button>
+            <button className="btn-secondary" onClick={() => save({ status: "CLOSED" })}>Close round (read-only)</button>
           ) : (
-            <button className="btn-secondary" onClick={() => save({ status: "OPEN" })}>Reopen cycle</button>
+            <button className="btn-secondary" onClick={() => save({ status: "OPEN" })}>Reopen round</button>
           )}
         </div>
       </div>

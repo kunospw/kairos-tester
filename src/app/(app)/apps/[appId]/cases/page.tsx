@@ -34,10 +34,9 @@ export default async function CasesPage({
   const base = `/apps/${appId}`;
   const actions = (
     <>
-      <a className="btn-secondary" href="/api/import/template">Download CSV template</a>
-      <Link className="btn-secondary" href={`${base}/cases/import`}>Import XLSX / CSV</Link>
-      <Link className="btn-secondary" href={`${base}/context`}>✨ Draft with AI</Link>
-      <Link className="btn-primary" href={`${base}/cases/new`}>+ New case</Link>
+      <Link className="btn-secondary" href={`${base}/cases/import`}>Import</Link>
+      <Link className="btn-secondary" href={`${base}/context#draft`}>Draft with AI</Link>
+      <Link className="btn-primary" href={`${base}/cases/new`}>New case</Link>
     </>
   );
 
@@ -45,7 +44,7 @@ export default async function CasesPage({
     return (
       <>
         <PageHeader title="Test cases" actions={actions} />
-        <EmptyState title="No test cases yet" action={<Link className="btn-accent" href={`${base}/cases/import`}>Import a checklist</Link>}>
+        <EmptyState title="No test cases yet" action={<Link className="btn-primary" href={`${base}/cases/import`}>Import a checklist</Link>}>
           Import an XLSX/CSV checklist, create cases by hand, or draft them with AI.
         </EmptyState>
       </>
@@ -85,11 +84,16 @@ export default async function CasesPage({
     <>
       <PageHeader
         title="Test cases"
-        subtitle={`${cases.length} cases. Results shown for the selected cycle.`}
+        subtitle={`${cases.length} cases`}
         actions={actions}
       />
-      <div className="mb-3">{cycles.length > 0 && <CyclePicker cycles={cycles} value={selected?.id ?? null} label="Results from" />}</div>
-      <CaseTable rows={rows} base={base} cycleId={selected?.id ?? null} simulation={results?.simulation ?? false} />
+      <CaseTable
+        rows={rows}
+        base={base}
+        cycleId={selected?.id ?? null}
+        simulation={results?.simulation ?? false}
+        roundPicker={cycles.length > 0 ? <CyclePicker cycles={cycles} value={selected?.id ?? null} label="Results from" /> : null}
+      />
     </>
   );
 }
