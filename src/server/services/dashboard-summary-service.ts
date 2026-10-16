@@ -24,6 +24,11 @@ export interface DashboardSummary {
     status: "DRAFT" | "FINAL";
     createdAt: string;
     aiSummary: string | null;
+    /** Kairos Tester's own human-in-the-loop flag: an AI summary is a draft until
+     * someone checks it (see README — "nothing AI-generated is auto-committed").
+     * A consumer must not present aiSummary as settled fact when this is false. */
+    aiSummaryReviewed: boolean;
+    aiSummaryReviewedBy: string | null;
   } | null;
 }
 
@@ -83,6 +88,8 @@ async function latestReportSnapshotFor(db: Db, applicationId: string): Promise<D
     status: report.status,
     createdAt: report.createdAt.toISOString(),
     aiSummary: report.aiSummary ?? null,
+    aiSummaryReviewed: report.aiSummaryReviewed,
+    aiSummaryReviewedBy: report.aiSummaryReviewedBy ?? null,
   };
 }
 
